@@ -1,0 +1,51 @@
+
+module Main where
+
+import Templates
+
+test = scenario do
+  companyA <- getParty "Company A"
+  companyB <- getParty "Company B"
+  a1 <- getParty "A employee 1"
+  a2 <- getParty "A employee 2"
+  b1 <- getParty "B employee 1"
+  b2 <- getParty "B employee 2"
+
+  let cA = Company with owner = companyA, name = "Company Eh", observers = [a1, a2, b1, b2]
+  let caInternal = CompanyInternal with company = cA, employees = [], management = []
+  (caId, caInternalId) <- companyA `submit` do
+      caId <- create cA
+      caInternalId1 <- create caInternal
+      caInternalId2 <- exercise caInternalId1 CompanyInternal_AddEmployee with employee = a1, manager = False
+      caInternalId3 <- exercise caInternalId2 CompanyInternal_AddEmployee with employee = a2, manager = True
+      return (caId, caInternalId3)
+
+  let cB = Company with owner = companyB, name = "Company B", observers = [a1, a2, b1, b2]
+  let cbInternal = CompanyInternal with company = cB, employees = [], management = []
+  (cbId, cbInternalId) <- companyB `submit` do
+      cbId <- create cB
+      cbInternalId1 <- create cbInternal
+      cbInternalId2 <- exercise cbInternalId1 CompanyInternal_AddEmployee with employee = b1, manager = False
+      cbInternalId3 <- exercise cbInternalId2 CompanyInternal_AddEmployee with employee = b2, manager = True
+      return (cbId, cbInternalId3)
+
+--  submit a2 $ visibleByKey @CompanyInternal (key caInternal)
+
+  -- Company B and employees must not be able to see Company A internals
+  submitMustFail companyB $ visibleByKey @CompanyInternal (key caInternal)
+  submitMustFail b1 $ fetchByKey @CompanyInternal (key caInternal)
+
+  -- a1 is not in management
+  a1 `submitMustFail` do
+      exercise caInternalId CompanyInternal_UpdateCompanyName with employee = a1, newName = "Company Eh2"
+
+  caId <- a2 `submit` do
+      (cId,_) <- fetchByKey @CompanyInternal (key caInternal)
+      exercise cId CompanyInternal_UpdateCompanyName with employee = a2, newName = "Company Eh Two"
+
+  proposalId <- b1 `submit` exercise cbInternalId CompanyInternal_MakeProposal with
+        employee = b1, proposedTo = companyA
+        proposal = "B1 proposing to Company A"
+
+  return ()
+

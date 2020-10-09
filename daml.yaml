@@ -1,0 +1,21 @@
+sdk-version: 1.5.0
+name: copy-model
+source: daml
+init-script: Setup:setupTest
+parties:
+  - CompanyA
+  - CompanyB
+  - EmployeeA1
+  - EmployeeA2
+  - EmployeeB1
+  - EmployeeB2
+  - Bob
+version: 0.0.1
+# trigger-dependencies-begin
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-script
+# trigger-dependencies-end
+sandbox-options:
+  - --wall-clock-time

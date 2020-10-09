@@ -1,0 +1,16 @@
+sdk-version: 1.5.0
+name: copy-trigger
+source: src
+parties:
+  - Alice
+  - Bob
+version: 0.0.1
+# trigger-dependencies-begin
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-trigger
+  - ../.daml/dist/copy-model-0.0.1.dar
+# trigger-dependencies-end
+sandbox-options:
+  - --wall-clock-time

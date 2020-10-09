@@ -1,0 +1,94 @@
+module Templates where
+
+template Employee
+  with
+    party : Party
+    name : Text
+  where
+    signatory party
+
+data CompanyKey = CompanyKey with
+        owner : Party
+        name  : Text
+    deriving (Show, Eq)
+
+template Company
+  with
+    owner : Party
+    name : Text
+    observers : [Party]
+  where
+    signatory owner
+    observer observers
+    key CompanyKey with
+      owner, name : CompanyKey
+    maintainer key.owner
+    controller owner can
+      Company_UpdateName : ContractId Company
+        with
+          newName : Text
+        do
+          create this with name = newName
+
+    nonconsuming choice Company_Propose : ContractId Proposal
+      with
+        proposer : Party
+        proposal : Text
+      controller proposer
+      do
+        create Proposal with proposer, proposedTo = owner, proposal
+
+template Proposal
+  with
+    proposer : Party
+    proposedTo : Party
+    proposal : Text
+  where
+    signatory proposer
+    observer proposedTo
+    key (proposer, proposedTo, proposal) : (Party, Party, Text)
+    maintainer key._1
+
+data CompanyInternalKey = CompanyInternalKey with
+        company : Company
+    deriving (Show, Eq)
+
+template CompanyInternal
+  with
+    company : Company
+    employees : [Party]
+    management : [Party]
+  where
+    signatory company.owner
+    observer employees
+    key CompanyInternalKey with
+      company : CompanyInternalKey
+    maintainer key.company.owner
+    controller company.owner can
+      CompanyInternal_AddEmployee : ContractId CompanyInternal
+        with
+          employee : Party
+          manager : Bool
+        do
+          let management' = if manager
+                            then employee :: management
+                            else management
+          create this with employees = employee :: employees, management = management'
+    nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
+      with
+        employee : Party
+        newName : Text
+      controller employee
+      do
+        assertMsg "Employee must be in management" $ elem employee management
+        exerciseByKey @Company (key company) Company_UpdateName with newName
+
+    nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
+      with
+        employee : Party
+        proposedTo : Party
+        proposal : Text
+      controller employee
+      do
+        assertMsg "Employee must be in company" $ elem employee employees
+        create Proposal with proposer = this.company.owner, ..
