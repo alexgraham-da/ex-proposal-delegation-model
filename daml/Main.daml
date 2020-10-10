@@ -45,7 +45,10 @@ test = scenario do
 
   proposalId <- b1 `submit` exercise cbInternalId CompanyInternal_MakeProposal with
         employee = b1, proposedTo = companyA
-        proposal = "B1 proposing to Company A"
+        proposalText = "B1 proposing to Company A"
+
+  companyA `submit` exercise caInternalId Company_AcceptProposal with proposal = proposal
+
 
   return ()
 
