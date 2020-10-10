@@ -1,7 +1,5 @@
 module Templates where
 
-import DA.List
-
 template Employee
   with
     party : Party
@@ -74,12 +72,12 @@ template DelegatedProposal
   where
     signatory (signatory internal)
     observer employee
-    key (proposal, internal) : (Proposal, CompanyInternal)
-    maintainer key._2.company.owner
+    key (proposal, employee, internal) : (Proposal, Party, CompanyInternal)
+    maintainer key._3.company.owner -- keyb._2
     controller employee can
       DelegatedProposal_Accept : ()
         do
-          exerciseByKey @Proposal (key proposal) Proposal_Accept
+          -- exerciseByKey @Proposal (key proposal) Proposal_Accept
           return ()
       DelegatedProposal_Decline : ()
         do
@@ -132,7 +130,7 @@ template CompanyInternal
         return ()
         -- exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
 
-    nonconsuming choice CompanyInternal_MakeProposal : (DelegatedProposal, Proposal)
+    nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
       with
         employee : Party
         proposedTo : Party
@@ -141,8 +139,7 @@ template CompanyInternal
       do
         assertMsg "Employee must be in company" $ elem employee employees
         let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
-        let delegated = DelegatedProposal with proposal, internal = this, employee = employee
-        did <- create delegated
+        -- let delegated = DelegatedProposal with proposal, internal = this, employee = employee
+        -- did <- create delegated
         -- _ <- mapA (\e -> create DelegatedProposal with proposal, internal = this, employee = e) this.employees
         create proposal
-        return (delegated, proposal)

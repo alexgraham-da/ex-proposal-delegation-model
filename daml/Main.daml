@@ -43,12 +43,11 @@ test = scenario do
       (cId,_) <- fetchByKey @CompanyInternal (key caInternal)
       exercise cId CompanyInternal_UpdateCompanyName with employee = a2, newName = "Company Eh Two"
 
-  proposalId <- b1 `submit` exercise cbInternalId CompanyInternal_MakeProposal with
+  (delegated, proposal) <- b1 `submit` exercise cbInternalId CompanyInternal_MakeProposal with
         employee = b1, proposedTo = companyA
         proposalText = "B1 proposing to Company A"
 
-  companyA `submit` exercise caInternalId Company_AcceptProposal with proposal = proposal
-
+  -- b1 `submit` exercise cbInternalId CompanyInternal_AcceptProposal with proposal = delegated, employee = b1
 
   return ()
 

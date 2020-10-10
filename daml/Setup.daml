@@ -42,7 +42,7 @@ setupTest = do
 
 
   -- b1 `submit` exerciseCmd cbInternalId CompanyInternal_AcceptProposal with proposal = delegated, employee = b1
-  companyA `submit` exerciseCmd caInternalId Company_AcceptProposal with proposal = proposal
+  -- companyA `submit` exerciseCmd caInternalId Company_AcceptProposal with proposal = proposal
   -- CompanyInternal_AcceptProposal with proposal = delegated, employee = companyA
   -- exerciseByKeyCmd @DelegatedProposal (proposal, b2) DelegatedProposal_Accept
 

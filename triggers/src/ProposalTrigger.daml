@@ -1,0 +1,93 @@
+-- Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+-- SPDX-License-Identifier: Apache-2.0
+
+
+module ProposalTrigger where
+
+import DA.List hiding (dedup)
+import DA.Next.Map (Map)
+
+import Daml.Trigger
+
+import Templates
+
+-- TRIGGER_BEGIN
+makeDelegatedProposals : Trigger ()
+makeDelegatedProposals = Trigger
+  { initialize = const ()
+  , updateState = \_acs _message () -> ()
+  , rule = makeDelegatedProposalRule
+  , registeredTemplates = AllInDar -- RegisteredTemplates [registeredTemplate @Proposal]
+  , heartbeat = None
+  }
+-- TRIGGER_END
+
+-- RULE_SIGNATURE_BEGIN
+makeDelegatedProposalRule : Party -> ACS -> Time -> Map CommandId [Command] -> () -> TriggerA ()
+makeDelegatedProposalRule party acs _time commandsInFlight () = do
+-- RULE_SIGNATURE_END
+-- ACS_QUERY_BEGIN
+  let proposals : [(ContractId Proposal, Proposal)] = getContracts @Proposal acs
+  let internalCompanies : [(ContractId CompanyInternal, CompanyInternal)] = getContracts @CompanyInternal acs
+  let companies : [(ContractId Company, Company)] = getContracts @Company acs
+  let delegatedProposals : [(ContractId DelegatedProposal, DelegatedProposal)] = getContracts @DelegatedProposal acs
+  -- let copies : [(ContractId Copy, Copy)] = getContracts @Copy acs
+-- ACS_QUERY_END
+
+
+  -- create a DelegatedProposal for each Proposal for each Emloyee
+  -- error (show proposals)
+  -- error (show acs)
+  let ownedCompany = head $ filter (\(_, c) -> c.company.owner == party) internalCompanies
+  let ownedProposals = filter (\(_, p) -> p.proposedTo == party) proposals
+
+  let employees = ownedCompany._2.employees
+
+  let newDelegatedProposals = [DelegatedProposal p (snd ownedCompany) e | e <- employees, (_,p) <- ownedProposals]
+  let createDelegatedProposals = filter (\dp -> dp `notElem` (map snd delegatedProposals)) newDelegatedProposals
+  -- error (show createDelegatedProposals)
+  mapA dedupCreate createDelegatedProposals
+
+
+  return ()
+
+  -- let employees = map (\(_, e) ->
+
+-- ACS_FILTER_BEGIN
+--   let ownedSubscribers = filter (\(_, s) -> s.subscribedTo == party) subscribers
+--   let ownedCompanies = filter (\(_, o) -> o.owner == party) originals
+-- -- ACS_FILTER_END
+--
+-- -- SUBSCRIBING_PARTIES_BEGIN
+--   let subscribingParties = map (\(_, s) -> s.subscriber) ownedSubscribers
+-- -- SUBSCRIBING_PARTIES_END
+--
+-- -- GROUP_COPIES_BEGIN
+--   let groupedCopies : [[(ContractId Copy, Copy)]]
+--       groupedCopies = groupOn snd $ sortOn snd $ ownedCopies
+--   let copiesToKeep = map head groupedCopies
+--   let archiveDuplicateCopies = concatMap tail groupedCopies
+-- -- GROUP_COPIES_END
+--
+-- -- ARCHIVE_COPIES_BEGIN
+--   let archiveMissingOriginal = filter (\(_, c) -> c.original `notElem` map snd ownedOriginals) copiesToKeep
+--   let archiveMissingSubscriber = filter (\(_, c) -> c.subscriber `notElem` subscribingParties) copiesToKeep
+--   let archiveCopies = dedup $ map fst $ archiveDuplicateCopies <> archiveMissingOriginal <> archiveMissingSubscriber
+-- -- ARCHIVE_COPIES_END
+--
+-- -- ARCHIVE_COMMAND_BEGIN
+--   forA archiveCopies $ \cid -> emitCommands [exerciseCmd cid Archive] [toAnyContractId cid]
+-- -- ARCHIVE_COMMAND_END
+--
+-- -- CREATE_COPIES_BEGIN
+--   let neededCopies = [Copy m o | (_, m) <- ownedOriginals, o <- subscribingParties]
+--   let createCopies = filter (\c -> c `notElem` map snd copiesToKeep) neededCopies
+--   mapA dedupCreate createCopies
+-- -- CREATE_COPIES_END
+--   pure ()
+--
+-- -- | The dedup function from DA.List requires an Ord constraint which we do not have for `ContractId k`. Therefore,
+-- -- we resort to the n^2 version for now. Once we have Maps we can use those to implement a more efficient dedup.
+-- dedup : Eq k => [k] -> [k]
+-- dedup [] = []
+-- dedup (x :: xs) = x :: dedup (filter (/= x) xs)

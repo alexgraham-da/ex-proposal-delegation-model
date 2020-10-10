@@ -11,6 +11,8 @@ dependencies:
   - daml-stdlib
   - daml-trigger
   - ../.daml/dist/copy-model-0.0.1.dar
+data-dependencies:
+  - ../.daml/dist/copy-model-0.0.1.dar
 # trigger-dependencies-end
 sandbox-options:
   - --wall-clock-time
