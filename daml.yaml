@@ -1,15 +1,15 @@
 sdk-version: 1.5.0
-name: copy-model
+name: proposal-model
 source: daml
-init-script: Setup:setupTest
+init-script: Setup:setup
 parties:
+  - Public
   - CompanyA
   - CompanyB
   - EmployeeA1
   - EmployeeA2
   - EmployeeB1
   - EmployeeB2
-  - Bob
 version: 0.0.1
 # trigger-dependencies-begin
 dependencies:

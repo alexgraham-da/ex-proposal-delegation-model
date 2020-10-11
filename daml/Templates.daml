@@ -1,5 +1,18 @@
 module Templates where
 
+
+template Notification
+  with
+    sender : Party
+    receiver : Party
+    message : Text
+  where
+    signatory sender
+    observer receiver
+    controller receiver can
+      Notification_Dismiss : ()
+        do return ()
+
 template Employee
   with
     party : Party
@@ -59,35 +72,34 @@ template Proposal
     controller proposedTo can
       Proposal_Accept : ()
         do
+          create Notification with
+              sender = proposedTo
+              receiver = proposer, message = "Your proposal: " <> proposal <> " was accepted."
           return ()
-      Proposal_Decline : ()
+      Proposal_Reject : ()
         do
+          create Notification with
+              sender = proposedTo
+              receiver = proposer, message = "Your proposal " <> proposal <> " was rejected."
           return ()
 
 template DelegatedProposal
   with
     proposal : Proposal
-    internal : CompanyInternal -- CompanyInternal
+    internal : CompanyInternal
     employee : Party
   where
     signatory (signatory internal)
     observer employee
     key (proposal, employee, internal) : (Proposal, Party, CompanyInternal)
     maintainer key._3.company.owner -- keyb._2
-    controller (signatory internal) can
-      DelegatedProposal_Accept : ()
-        do
-          exerciseByKey @Proposal (key proposal) Proposal_Accept
-          return ()
-      DelegatedProposal_Reject : ()
-        do
-          exerciseByKey @Proposal (key proposal) Proposal_Decline
 
     controller employee can
-      nonconsuming DelegatedProposal_AcceptAction : ContractId DelegatedProposalAction
+      DelegatedProposal_Accept : ContractId DelegatedProposalAction
         do
           create DelegatedProposalAction with proposal = this, action = Accept, employee, internal
-      nonconsuming DelegatedProposal_DeclineAction : ContractId DelegatedProposalAction
+
+      DelegatedProposal_Reject : ContractId DelegatedProposalAction
         do
           create DelegatedProposalAction with proposal = this, action = Reject, employee, internal
 
@@ -106,8 +118,8 @@ template DelegatedProposalAction
       DelegatedProposalAction_Resolve : ()
         do
           case action of
-            Accept -> exerciseByKey @DelegatedProposal (key proposal) DelegatedProposal_Accept
-            Reject -> exerciseByKey @DelegatedProposal (key proposal) DelegatedProposal_Reject
+            Accept -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
+            Reject -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Reject
 
 data CompanyInternalKey = CompanyInternalKey with
         company : Company
@@ -149,7 +161,6 @@ template CompanyInternal
         employee : Party
       controller employee
       do
-        -- this needs to create a contract that the company can then exercise itself...
         -- assertMsg "Employee must be in company" $ elem employee employees
         exerciseByKey @Company (key company) Company_AcceptProposal with proposal = proposal.proposal, company = company.owner
         return ()
@@ -162,5 +173,6 @@ template CompanyInternal
       controller employee
       do
         assertMsg "Employee must be in company" $ elem employee employees
+        assertMsg "Cannot propose to own company" $ proposedTo /= this.company.owner
         let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
         create proposal

@@ -51,7 +51,7 @@ test = scenario do
       proposal <- fetch proposalId
       create DelegatedProposal with proposal, internal = caInternal, employee = a1
 
-  delegatedProposalActionId <- submit a1 $ exercise delegatedProposalId DelegatedProposal_AcceptAction
+  delegatedProposalActionId <- submit a1 $ exercise delegatedProposalId DelegatedProposal_Accept
   companyA `submit` exercise delegatedProposalActionId DelegatedProposalAction_Resolve
 
   -- b1 `submit` exercise cbInternalId CompanyInternal_AcceptProposal with proposal = delegated, employee = b1

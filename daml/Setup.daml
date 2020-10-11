@@ -6,8 +6,22 @@ import Daml.Script
 
 import Templates
 
-setupTest : Script ()
-setupTest = do
+data LedgerParties = LedgerParties with
+  public : Party
+  companyA : Party
+  companyB : Party
+  employeeA1 : Party
+  employeeA2 : Party
+  employeeB1 : Party
+  employeeB2 : Party
+    deriving (Eq, Show)
+
+initialize : LedgerParties -> Script ()
+initialize = doSetup
+
+setup : Script ()
+setup = do
+  public <- allocatePartyWithHint "Public" (PartyIdHint "Public")
   companyA <- allocatePartyWithHint "CompanyA" (PartyIdHint "CompanyA")
   companyB <- allocatePartyWithHint "CompanyB" (PartyIdHint "CompanyB")
   a1 <- allocatePartyWithHint "EmployeeA1" (PartyIdHint "EmployeeA1")
@@ -15,10 +29,15 @@ setupTest = do
   b1 <- allocatePartyWithHint "EmployeeB1" (PartyIdHint "EmployeeB1")
   b2 <- allocatePartyWithHint "EmployeeB2" (PartyIdHint "EmployeeB2")
 
-  let cA = Company with owner = companyA, name = "Company A", observers = [companyB, a1, a2, b1, b2]
+  doSetup $ LedgerParties public companyA companyB a1 a2 b1 b2
+
+doSetup : LedgerParties -> Script ()
+doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
+
+  let cA = Company with owner = companyA, name = "Company A", observers = [public] -- companyB, a1, a2, b1, b2]
   let cAInternal = CompanyInternal with company = cA, employees = [], management = []
 
-  let cB = Company with owner = companyB, name = "Company B", observers = [companyA, a1, a2, b1, b2]
+  let cB = Company with owner = companyB, name = "Company B", observers = [public]
   let cbInternal = CompanyInternal with company = cB, employees = [], management = []
 
   caId <- submit companyA $ createCmd cA
@@ -30,24 +49,5 @@ setupTest = do
   cbInternalId <- submit companyB $ createCmd cbInternal
   cbInternalId <- submit companyB $ exerciseCmd cbInternalId CompanyInternal_AddEmployee with employee = b1, manager = False
   cbInternalId <- submit companyB $ exerciseCmd cbInternalId CompanyInternal_AddEmployee with employee = b2, manager = True
-
-  caId <- submit a2 $ exerciseCmd caInternalId CompanyInternal_UpdateCompanyName
-      with
-        employee = a2, newName = "Company Eh Two"
-
-  proposalId <- b1 `submit` exerciseCmd cbInternalId CompanyInternal_MakeProposal
-      with
-        employee = b1, proposedTo = companyA
-        proposalText = "B1 proposing to Company A"
-
-
-  -- b1 `submit` exerciseCmd cbInternalId CompanyInternal_AcceptProposal with proposal = delegated, employee = b1
-  -- companyA `submit` exerciseCmd caInternalId Company_AcceptProposal with proposal = proposal
-  -- CompanyInternal_AcceptProposal with proposal = delegated, employee = companyA
-  -- exerciseByKeyCmd @DelegatedProposal (proposal, b2) DelegatedProposal_Accept
-
-  -- (_,proposal) <- submit companyB $ fetchByKey @Proposal (companyB, companyB, "B1 proposing to Company A")
-
-  -- (b1DelegatedId, _) <- submit b1 $ fetchByKey @DelegatedProposal (proposal, cbInternal, b1)
 
   return ()

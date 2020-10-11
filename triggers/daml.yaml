@@ -1,18 +1,22 @@
 sdk-version: 1.5.0
-name: copy-trigger
+name: proposal-trigger
 source: src
 parties:
-  - Alice
-  - Bob
+  - CompanyA
+  - CompanyB
+  - EmployeeA1
+  - EmployeeA2
+  - EmployeeB1
+  - EmployeeB2
 version: 0.0.1
 # trigger-dependencies-begin
 dependencies:
   - daml-prim
   - daml-stdlib
   - daml-trigger
-  - ../.daml/dist/copy-model-0.0.1.dar
+  - ../.daml/dist/proposal-model-0.0.1.dar
 data-dependencies:
-  - ../.daml/dist/copy-model-0.0.1.dar
+  - ../.daml/dist/proposal-model-0.0.1.dar
 # trigger-dependencies-end
 sandbox-options:
   - --wall-clock-time
