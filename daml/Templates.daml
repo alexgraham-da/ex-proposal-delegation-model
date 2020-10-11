@@ -74,14 +74,40 @@ template DelegatedProposal
     observer employee
     key (proposal, employee, internal) : (Proposal, Party, CompanyInternal)
     maintainer key._3.company.owner -- keyb._2
-    controller employee can
+    controller (signatory internal) can
       DelegatedProposal_Accept : ()
         do
-          -- exerciseByKey @Proposal (key proposal) Proposal_Accept
+          exerciseByKey @Proposal (key proposal) Proposal_Accept
           return ()
-      DelegatedProposal_Decline : ()
+      DelegatedProposal_Reject : ()
         do
           exerciseByKey @Proposal (key proposal) Proposal_Decline
+
+    controller employee can
+      nonconsuming DelegatedProposal_AcceptAction : ContractId DelegatedProposalAction
+        do
+          create DelegatedProposalAction with proposal = this, action = Accept, employee, internal
+      nonconsuming DelegatedProposal_DeclineAction : ContractId DelegatedProposalAction
+        do
+          create DelegatedProposalAction with proposal = this, action = Reject, employee, internal
+
+data DPAction = Accept | Reject deriving (Show,Eq)
+
+template DelegatedProposalAction
+  with
+    proposal : DelegatedProposal
+    action : DPAction
+    employee : Party
+    internal : CompanyInternal
+  where
+    signatory employee
+    observer (signatory internal)
+    controller (signatory internal) can
+      DelegatedProposalAction_Resolve : ()
+        do
+          case action of
+            Accept -> exerciseByKey @DelegatedProposal (key proposal) DelegatedProposal_Accept
+            Reject -> exerciseByKey @DelegatedProposal (key proposal) DelegatedProposal_Reject
 
 data CompanyInternalKey = CompanyInternalKey with
         company : Company
@@ -124,11 +150,9 @@ template CompanyInternal
       controller employee
       do
         -- this needs to create a contract that the company can then exercise itself...
-
         -- assertMsg "Employee must be in company" $ elem employee employees
         exerciseByKey @Company (key company) Company_AcceptProposal with proposal = proposal.proposal, company = company.owner
         return ()
-        -- exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
 
     nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
       with
@@ -139,7 +163,4 @@ template CompanyInternal
       do
         assertMsg "Employee must be in company" $ elem employee employees
         let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
-        -- let delegated = DelegatedProposal with proposal, internal = this, employee = employee
-        -- did <- create delegated
-        -- _ <- mapA (\e -> create DelegatedProposal with proposal, internal = this, employee = e) this.employees
         create proposal

@@ -35,7 +35,7 @@ setupTest = do
       with
         employee = a2, newName = "Company Eh Two"
 
-  (delegated,proposal) <- b1 `submit` exerciseCmd cbInternalId CompanyInternal_MakeProposal
+  proposalId <- b1 `submit` exerciseCmd cbInternalId CompanyInternal_MakeProposal
       with
         employee = b1, proposedTo = companyA
         proposalText = "B1 proposing to Company A"

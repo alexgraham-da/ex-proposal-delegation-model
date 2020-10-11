@@ -6,6 +6,7 @@ module ProposalTrigger where
 
 import DA.List hiding (dedup)
 import DA.Next.Map (Map)
+import DA.Foldable
 
 import Daml.Trigger
 
@@ -29,15 +30,11 @@ makeDelegatedProposalRule party acs _time commandsInFlight () = do
 -- ACS_QUERY_BEGIN
   let proposals : [(ContractId Proposal, Proposal)] = getContracts @Proposal acs
   let internalCompanies : [(ContractId CompanyInternal, CompanyInternal)] = getContracts @CompanyInternal acs
-  let companies : [(ContractId Company, Company)] = getContracts @Company acs
   let delegatedProposals : [(ContractId DelegatedProposal, DelegatedProposal)] = getContracts @DelegatedProposal acs
-  -- let copies : [(ContractId Copy, Copy)] = getContracts @Copy acs
--- ACS_QUERY_END
+  let delegatedProposalActions : [(ContractId DelegatedProposalAction, DelegatedProposalAction)] = getContracts @DelegatedProposalAction acs
 
+  forA_ delegatedProposalActions $ \(cid,_) -> emitCommands [exerciseCmd cid DelegatedProposalAction_Resolve] [toAnyContractId cid]
 
-  -- create a DelegatedProposal for each Proposal for each Emloyee
-  -- error (show proposals)
-  -- error (show acs)
   let ownedCompany = head $ filter (\(_, c) -> c.company.owner == party) internalCompanies
   let ownedProposals = filter (\(_, p) -> p.proposedTo == party) proposals
 
@@ -45,11 +42,8 @@ makeDelegatedProposalRule party acs _time commandsInFlight () = do
 
   let newDelegatedProposals = [DelegatedProposal p (snd ownedCompany) e | e <- employees, (_,p) <- ownedProposals]
   let createDelegatedProposals = filter (\dp -> dp `notElem` (map snd delegatedProposals)) newDelegatedProposals
-  -- error (show createDelegatedProposals)
-  mapA dedupCreate createDelegatedProposals
 
-
-  return ()
+  mapA_ dedupCreate createDelegatedProposals
 
   -- let employees = map (\(_, e) ->
 
