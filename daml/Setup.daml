@@ -34,7 +34,7 @@ setup = do
 doSetup : LedgerParties -> Script ()
 doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
 
-  let cA = Company with owner = companyA, name = "Company A", observers = [public] -- companyB, a1, a2, b1, b2]
+  let cA = Company with owner = companyA, name = "Company A", observers = [public]
   let cAInternal = CompanyInternal with company = cA, employees = [], management = []
 
   let cB = Company with owner = companyB, name = "Company B", observers = [public]

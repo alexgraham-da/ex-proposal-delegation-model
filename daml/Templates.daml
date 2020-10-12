@@ -8,10 +8,10 @@ template Notification
     message : Text
   where
     signatory sender
-    observer receiver
     controller receiver can
       Notification_Dismiss : ()
         do return ()
+
 
 template Employee
   with
@@ -19,6 +19,7 @@ template Employee
     name : Text
   where
     signatory party
+
 
 data CompanyKey = CompanyKey with
         owner : Party
@@ -51,13 +52,6 @@ template Company
       do
         create Proposal with proposer, proposedTo = owner, proposal
 
-    nonconsuming choice Company_AcceptProposal : ()
-      with
-        proposal : Proposal
-        company : Party
-      controller company
-      do
-        exerciseByKey @Proposal (key proposal) Proposal_Accept
 
 template Proposal
   with
@@ -74,14 +68,15 @@ template Proposal
         do
           create Notification with
               sender = proposedTo
-              receiver = proposer, message = "Your proposal: " <> proposal <> " was accepted."
+              receiver = proposer, message = "The proposal: '" <> proposal <> "' was accepted."
           return ()
       Proposal_Reject : ()
         do
           create Notification with
               sender = proposedTo
-              receiver = proposer, message = "Your proposal " <> proposal <> " was rejected."
+              receiver = proposer, message = "The proposal: '" <> proposal <> "' was rejected."
           return ()
+
 
 template DelegatedProposal
   with
@@ -92,7 +87,7 @@ template DelegatedProposal
     signatory (signatory internal)
     observer employee
     key (proposal, employee, internal) : (Proposal, Party, CompanyInternal)
-    maintainer key._3.company.owner -- keyb._2
+    maintainer key._3.company.owner
 
     controller employee can
       DelegatedProposal_Accept : ContractId DelegatedProposalAction
@@ -121,6 +116,7 @@ template DelegatedProposalAction
             Accept -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
             Reject -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Reject
 
+
 data CompanyInternalKey = CompanyInternalKey with
         company : Company
     deriving (Show, Eq)
@@ -146,6 +142,7 @@ template CompanyInternal
                             then employee :: management
                             else management
           create this with employees = employee :: employees, management = management'
+
     nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
       with
         employee : Party
@@ -154,16 +151,6 @@ template CompanyInternal
       do
         assertMsg "Employee must be in management" $ elem employee management
         exerciseByKey @Company (key company) Company_UpdateName with newName
-
-    nonconsuming choice CompanyInternal_AcceptProposal : ()
-      with
-        proposal : DelegatedProposal
-        employee : Party
-      controller employee
-      do
-        -- assertMsg "Employee must be in company" $ elem employee employees
-        exerciseByKey @Company (key company) Company_AcceptProposal with proposal = proposal.proposal, company = company.owner
-        return ()
 
     nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
       with

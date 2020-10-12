@@ -41,6 +41,19 @@ handleProposalsRule party acs _time commandsInFlight () = do
 
   mapA_ dedupCreate createDelegatedProposals
 
+  -- Pass on notifications
+  let notifications = getContracts @Notification acs
+  let ownedNotifications = filter (\(_, n) -> n.receiver == party) notifications
+  let toPassedMessage n = n.message <> " (" <> show n.sender <> ")"
+  let newNotifications = [Notification party e (toPassedMessage n) | e    <- employees
+                                                                   ,(_,n) <- ownedNotifications]
+  let createNotifications = filter (\n -> n `notElem` (map snd notifications)) newNotifications
+
+  mapA_ dedupCreate createNotifications
+
+  -- Remove owned notifications after passing along to employees
+  forA_ ownedNotifications $ \(cid,_) -> emitCommands [exerciseCmd cid Notification_Dismiss] [toAnyContractId cid]
+
   -- Resolve proposal actions
   let delegatedProposalActions = getContracts @DelegatedProposalAction acs
   forA_ delegatedProposalActions $ \(cid,_) -> emitCommands [exerciseCmd cid DelegatedProposalAction_Resolve] [toAnyContractId cid]
@@ -49,7 +62,12 @@ handleProposalsRule party acs _time commandsInFlight () = do
   let archiveMissingProposals = dedup $ map fst
                               $ filter (\(_, dp) -> dp.proposal `notElem` map snd ownedProposals) delegatedProposals
   forA_ archiveMissingProposals $ \cid -> emitCommands [exerciseCmd cid Archive] [toAnyContractId cid]
-  --
+
+notifyEmployees : Party -> ACS -> TriggerA ()
+notifyEmployees party acs = do
+  let ownedNotifications = filter (\(_, n) -> n.receiver == party) $ getContracts @Notification acs
+  return ()
+
 -- we resort to the n^2 version for now. Once we have Maps we can use those to implement a more efficient dedup.
 dedup : Eq k => [k] -> [k]
 dedup [] = []

@@ -29,8 +29,6 @@ test = scenario do
       cbInternalId3 <- exercise cbInternalId2 CompanyInternal_AddEmployee with employee = b2, manager = True
       return (cbId, cbInternalId3)
 
---  submit a2 $ visibleByKey @CompanyInternal (key caInternal)
-
   -- Company B and employees must not be able to see Company A internals
   submitMustFail companyB $ visibleByKey @CompanyInternal (key caInternal)
   submitMustFail b1 $ fetchByKey @CompanyInternal (key caInternal)
@@ -53,8 +51,6 @@ test = scenario do
 
   delegatedProposalActionId <- submit a1 $ exercise delegatedProposalId DelegatedProposal_Accept
   companyA `submit` exercise delegatedProposalActionId DelegatedProposalAction_Resolve
-
-  -- b1 `submit` exercise cbInternalId CompanyInternal_AcceptProposal with proposal = delegated, employee = b1
 
   return ()
 
