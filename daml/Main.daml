@@ -45,11 +45,17 @@ test = scenario do
         employee = b1, proposedTo = companyA
         proposalText = "B1 proposing to Company A"
 
-  delegatedProposalId <- companyA `submit` do
+  -- Run by trigger:
+  (dpId1, dpId2) <- companyA `submit` do
       proposal <- fetch proposalId
-      create DelegatedProposal with proposal, internal = caInternal, employee = a1
+      dpId1 <- create DelegatedProposal with proposal, internal = caInternal, employee = a1
+      dpId2 <- create DelegatedProposal with proposal, internal = caInternal, employee = a2
+      return (dpId1, dpId2)
+  -- end run by trigger
 
-  delegatedProposalActionId <- submit a1 $ exercise delegatedProposalId DelegatedProposal_Accept
+  delegatedProposalActionId <- submit a1 $ exercise dpId1 DelegatedProposal_Accept
+
+  -- Run by trigger:
   companyA `submit` exercise delegatedProposalActionId DelegatedProposalAction_Resolve
 
   return ()

@@ -1,30 +1,15 @@
 module Templates where
 
 
-template Notification
-  with
-    sender : Party
-    receiver : Party
-    message : Text
-  where
-    signatory sender
-    controller receiver can
-      Notification_Dismiss : ()
-        do return ()
-
-
 template Employee
   with
     party : Party
     name : Text
+    public : Party
   where
     signatory party
+    observer public
 
-
-data CompanyKey = CompanyKey with
-        owner : Party
-        name  : Text
-    deriving (Show, Eq)
 
 template Company
   with
@@ -34,9 +19,8 @@ template Company
   where
     signatory owner
     observer observers
-    key CompanyKey with
-      owner, name : CompanyKey
-    maintainer key.owner
+    key (owner, name) : (Party, Text)
+    maintainer key._1
     controller owner can
       Company_UpdateName : ContractId Company
         with
@@ -51,6 +35,49 @@ template Company
       controller proposer
       do
         create Proposal with proposer, proposedTo = owner, proposal
+
+
+template CompanyInternal
+  with
+    company : Company
+    employees : [Party]
+    management : [Party]
+  where
+    signatory company.owner
+    observer employees
+    key company : Company
+    maintainer key.owner
+    controller company.owner can
+      CompanyInternal_AddEmployee : ContractId CompanyInternal
+        with
+          employee : Party
+          manager : Bool
+        do
+          let management' = if manager
+                            then employee :: management
+                            else management
+          create this with employees = employee :: employees, management = management'
+
+    nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
+      with
+        employee : Party
+        newName : Text
+      controller employee
+      do
+        assertMsg "Employee must be in management" $ elem employee management
+        exerciseByKey @Company (key company) Company_UpdateName with newName
+
+    nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
+      with
+        employee : Party
+        proposedTo : Party
+        proposalText : Text
+      controller employee
+      do
+        assertMsg "Employee must be in company" $ elem employee employees
+        assertMsg "Cannot propose to own company" $ proposedTo /= this.company.owner
+        let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
+        create proposal
 
 
 template Proposal
@@ -86,24 +113,25 @@ template DelegatedProposal
   where
     signatory (signatory internal)
     observer employee
-    key (proposal, employee, internal) : (Proposal, Party, CompanyInternal)
-    maintainer key._3.company.owner
+    key (proposal, internal, employee) : (Proposal, CompanyInternal, Party)
+    maintainer key._2.company.owner
 
     controller employee can
       DelegatedProposal_Accept : ContractId DelegatedProposalAction
         do
-          create DelegatedProposalAction with proposal = this, action = Accept, employee, internal
+          create DelegatedProposalAction with proposal = this, action = DPAccept, employee, internal
 
       DelegatedProposal_Reject : ContractId DelegatedProposalAction
         do
-          create DelegatedProposalAction with proposal = this, action = Reject, employee, internal
+          create DelegatedProposalAction with proposal = this, action = DPReject, employee, internal
 
-data DPAction = Accept | Reject deriving (Show,Eq)
+
+data DPAction = DPAccept | DPReject deriving (Show,Eq)
 
 template DelegatedProposalAction
   with
     proposal : DelegatedProposal
-    action : DPAction
+    action   : DPAction
     employee : Party
     internal : CompanyInternal
   where
@@ -113,53 +141,18 @@ template DelegatedProposalAction
       DelegatedProposalAction_Resolve : ()
         do
           case action of
-            Accept -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
-            Reject -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Reject
+            DPAccept -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
+            DPReject -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Reject
 
 
-data CompanyInternalKey = CompanyInternalKey with
-        company : Company
-    deriving (Show, Eq)
-
-template CompanyInternal
+template Notification
   with
-    company : Company
-    employees : [Party]
-    management : [Party]
+    sender : Party
+    receiver : Party
+    message : Text
   where
-    signatory company.owner
-    observer employees
-    key CompanyInternalKey with
-      company : CompanyInternalKey
-    maintainer key.company.owner
-    controller company.owner can
-      CompanyInternal_AddEmployee : ContractId CompanyInternal
-        with
-          employee : Party
-          manager : Bool
-        do
-          let management' = if manager
-                            then employee :: management
-                            else management
-          create this with employees = employee :: employees, management = management'
+    signatory sender
+    controller receiver can
+      Notification_Dismiss : ()
+        do return ()
 
-    nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
-      with
-        employee : Party
-        newName : Text
-      controller employee
-      do
-        assertMsg "Employee must be in management" $ elem employee management
-        exerciseByKey @Company (key company) Company_UpdateName with newName
-
-    nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
-      with
-        employee : Party
-        proposedTo : Party
-        proposalText : Text
-      controller employee
-      do
-        assertMsg "Employee must be in company" $ elem employee employees
-        assertMsg "Cannot propose to own company" $ proposedTo /= this.company.owner
-        let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
-        create proposal
