@@ -1,16 +1,6 @@
 module Templates where
 
 
-template Employee
-  with
-    party : Party
-    name : Text
-    public : Party
-  where
-    signatory party
-    observer public
-
-
 template Company
   with
     owner : Party
@@ -155,4 +145,12 @@ template Notification
     controller receiver can
       Notification_Dismiss : ()
         do return ()
+
+
+template Employee
+  with
+    party : Party
+    name : Text
+  where
+    signatory party
 

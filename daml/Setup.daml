@@ -34,11 +34,6 @@ setup = do
 doSetup : LedgerParties -> Script ()
 doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
 
-  ea1 <- submit a1 $ createCmd Employee with party = a1, name = "Alice", ..
-  ea2 <- submit a2 $ createCmd Employee with party = a2, name = "Bob", ..
-  eb1 <- submit b1 $ createCmd Employee with party = b1, name = "Carol", ..
-  eb2 <- submit b2 $ createCmd Employee with party = b2, name = "Drew", ..
-
   let cA = Company with owner = companyA, name = "Company A", observers = [public]
   let cAInternal = CompanyInternal with company = cA, employees = [], management = []
 
