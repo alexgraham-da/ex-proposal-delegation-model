@@ -12,12 +12,11 @@ template Company
     key (owner, name) : (Party, Text)
     maintainer key._1
     controller owner can
-      Company_UpdateName : ()-- ContractId Company
+      Company_UpdateName : ContractId Company
         with
           newName : Text
         do
           create this with name = newName
-          return ()
 
     nonconsuming choice Company_Propose : ContractId Proposal
       with
@@ -49,14 +48,14 @@ template CompanyInternal
                             else management
           create this with employees = employee :: employees, management = management'
 
-    nonconsuming choice CompanyInternal_UpdateCompanyName : () -- ContractId Company
+    nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
       with
         employee : Party
         newName : Text
       controller employee
       do
         assertMsg "Employee must be in management" $ elem employee management
---        exerciseByKey @Company (key company) Company_UpdateName with newName
+        exerciseByKey @Company (key company) Company_UpdateName with newName
 
     nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
       with
@@ -70,27 +69,6 @@ template CompanyInternal
         let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
         create proposal
 
-data DPResolve = DPRAccept DelegatedProposal
-               | DPRReject DelegatedProposal deriving (Show, Eq)
-
-data CompanyAction = UpdateName (Company,Text)
-                    | ResolveProposal DPResolve deriving (Show, Eq)
-
-template CompanyActionRequest
-  with
-    employee : Party
-    company : Party
-    action : CompanyAction
-  where
-    signatory employee
-    controller company can
-      CompanyActionRequest_Resolve : ()
-        do
-          case action of
-            (ResolveProposal (DPRAccept p)) -> exerciseByKey @Proposal (key p.proposal) Proposal_Accept
-            (ResolveProposal (DPRReject p)) -> exerciseByKey @Proposal (key p.proposal) Proposal_Reject
-            (UpdateName (c,newName))     -> exerciseByKey @Company (key c) Company_UpdateName with newName
-          return ()
 
 template Proposal
   with
@@ -124,10 +102,10 @@ template DelegatedProposal
     internal : CompanyInternal
     employee : Party
   where
-    signatory (signatory internal)
+    signatory internal.company.owner
     observer employee
     key (proposal, internal, employee) : (Proposal, CompanyInternal, Party)
-    maintainer (signatory key._2)
+    maintainer key._2.company.owner
 
     controller employee can
       DelegatedProposal_Accept : ContractId DelegatedProposalAction
