@@ -19,8 +19,8 @@ data LedgerParties = LedgerParties with
 initialize : LedgerParties -> Script ()
 initialize = doSetup
 
-setup : Script ()
-setup = do
+allocateParties : Script LedgerParties
+allocateParties = do
   public <- allocatePartyWithHint "Public" (PartyIdHint "Public")
   companyA <- allocatePartyWithHint "CompanyA" (PartyIdHint "CompanyA")
   companyB <- allocatePartyWithHint "CompanyB" (PartyIdHint "CompanyB")
@@ -28,8 +28,10 @@ setup = do
   a2 <- allocatePartyWithHint "EmployeeA2" (PartyIdHint "EmployeeA2")
   b1 <- allocatePartyWithHint "EmployeeB1" (PartyIdHint "EmployeeB1")
   b2 <- allocatePartyWithHint "EmployeeB2" (PartyIdHint "EmployeeB2")
+  return $ LedgerParties public companyA companyB a1 a2 b1 b2
 
-  doSetup $ LedgerParties public companyA companyB a1 a2 b1 b2
+setup : Script ()
+setup = allocateParties >>= doSetup
 
 doSetup : LedgerParties -> Script ()
 doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
@@ -51,3 +53,4 @@ doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
   cbInternalId <- submit companyB $ exerciseCmd cbInternalId CompanyInternal_AddEmployee with employee = b2, manager = True
 
   return ()
+
