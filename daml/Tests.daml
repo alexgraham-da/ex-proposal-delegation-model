@@ -44,14 +44,33 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
 
 type TestSetupResults = (LedgerParties,ContractId Proposal)
 
-testStepTwo : (LedgerParties,ContractId Proposal) -> Script ()
+testStepTwo : TestSetupResults -> Script (LedgerParties,Proposal)
 testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId) = do
   (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
   proposal <- fromSome <$> queryContractId companyA proposalId
 
-  someDelegatedProposal : Optional (ContractId DelegatedProposal, DelegatedProposal) <- queryContractKey a1 $ key $ DelegatedProposal with proposal, internal = caInternal, employee = a1
+  let dp = DelegatedProposal with proposal, internal = caInternal, employee = a1
+  someDelegatedProposal : Optional (ContractPair DelegatedProposal) <- queryContractKey a1 $ key dp
   assertMsg "delegated proposal not found" $ isSome someDelegatedProposal
 
-  return ()
+  let (dpId,_) = fromSome someDelegatedProposal
+  a1 `submit` exerciseCmd dpId DelegatedProposal_Accept
 
+  return (lp,proposal)
+
+testStepThree : (LedgerParties,Proposal) -> Script ()
+testStepThree (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), p) = do
+  (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
+
+  let (Proposal proposer proposedTo proposal) = p
+  let agreement = Agreement with proposer = proposer, proposedTo = proposedTo, text = proposal
+
+  someAgreement : Optional (ContractPair Agreement) <- queryContractKey companyA $ key agreement
+  assertMsg "agreement not found" $ isSome someAgreement
+
+  let notification = Notification with sender = companyB, receiver = b1, message = ("The proposal: '" <> proposal <> "' was accepted.")
+  notifications : [ContractPair Notification] <- query b1
+  assertMsg "employees of company b must have been notified" $ not $ null notifications
+
+  return ()
