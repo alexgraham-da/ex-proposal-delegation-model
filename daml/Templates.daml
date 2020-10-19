@@ -142,6 +142,8 @@ template Agreement
   where
     signatory proposer, proposedTo
 
+    key (proposer, proposedTo, text) : (Party, Party, Text)
+    maintainer key._1
 
 template Notification
   with
