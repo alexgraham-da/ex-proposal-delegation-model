@@ -1,10 +1,8 @@
 -- Copyright (c) 2020 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 -- SPDX-License-Identifier: Apache-2.0
 
-
 module ProposalTrigger where
 
-import DA.List hiding (dedup)
 import DA.Next.Map (Map)
 import DA.Foldable
 
@@ -23,24 +21,56 @@ handleProposals = Trigger
   }
 -- TRIGGER_END
 
+type ContractPair a = (ContractId a, a)
+
 -- RULE_SIGNATURE_BEGIN
 handleProposalsRule : Party -> ACS -> Time -> Map CommandId [Command] -> () -> TriggerA ()
-handleProposalsRule party acs _time commandsInFlight () = do
-  -- Fetch all necessary contracts
-  let proposals = getContracts @Proposal acs
-  let internalCompanies = getContracts @CompanyInternal acs
-  let delegatedProposals = getContracts @DelegatedProposal acs
+handleProposalsRule party acs _time commandsInFlight () = mapA_ go ownedCompanies
+  where
+    internalCompanies = getContracts @CompanyInternal acs
+    ownedCompanies    = filter (\(_, c) -> c.company.owner == party) internalCompanies
 
-  -- Create new delegated proposals
-  let ownedCompany = head $ filter (\(_, c) -> c.company.owner == party) internalCompanies
+    go : ContractPair CompanyInternal -> TriggerA ()
+    go = handleSingleCompany party acs _time commandsInFlight ()
+
+-- |Performs all company actions for one owned InternalCompany
+handleSingleCompany : Party -> ACS -> Time -> Map CommandId [Command] -> () -> ContractPair CompanyInternal -> TriggerA ()
+handleSingleCompany party acs _time commandsInFlight () ownedCompany = do
+  let employees = ownedCompany._2.employees
+
+  -- Delegate proposals, resolve proposal actions and clean up old delegated proposals
+  handleDelegation party acs ownedCompany employees
+
+  -- Send notifications to employees
+  handleNotifications party acs employees
+
+-- |Handles all proposal delegation
+handleDelegation : Party -> ACS -> ContractPair CompanyInternal -> [Party] -> TriggerA ()
+handleDelegation party acs ownedCompany employees = do
+
+  -- Retrieve needed proposals
+  let proposals = getContracts @Proposal acs
+  let delegatedProposals = getContracts @DelegatedProposal acs
   let ownedProposals = filter (\(_, p) -> p.proposedTo == party) proposals
 
-  let employees = ownedCompany._2.employees
+  -- Create delegated proposals
   let newDelegatedProposals = [DelegatedProposal p (snd ownedCompany) e | e <- employees, (_,p) <- ownedProposals]
   let createDelegatedProposals = filter (\dp -> dp `notElem` (map snd delegatedProposals)) newDelegatedProposals
 
   mapA_ dedupCreate createDelegatedProposals
 
+  -- Resolve proposal actions
+  let delegatedProposalActions = getContracts @DelegatedProposalAction acs
+  forA_ delegatedProposalActions $ \(cid,_) -> emitCommands [exerciseCmd cid DelegatedProposalAction_Resolve] [toAnyContractId cid]
+
+  -- Clean up old delegated proposals
+  let archiveMissingProposals = dedup $ map fst
+                              $ filter (\(_, dp) -> dp.proposal `notElem` map snd ownedProposals) delegatedProposals
+  forA_ archiveMissingProposals $ \cid -> emitCommands [exerciseCmd cid Archive] [toAnyContractId cid]
+
+-- |Passes on notifications to all employees
+handleNotifications : Party -> ACS -> [Party] -> TriggerA ()
+handleNotifications party acs employees = do
   -- Pass on notifications
   let notifications = getContracts @Notification acs
   let ownedNotifications = filter (\(_, n) -> n.receiver == party) notifications
@@ -54,20 +84,7 @@ handleProposalsRule party acs _time commandsInFlight () = do
   -- Remove owned notifications after passing along to employees
   forA_ ownedNotifications $ \(cid,_) -> emitCommands [exerciseCmd cid Notification_Dismiss] [toAnyContractId cid]
 
-  -- Resolve proposal actions
-  let delegatedProposalActions = getContracts @DelegatedProposalAction acs
-  forA_ delegatedProposalActions $ \(cid,_) -> emitCommands [exerciseCmd cid DelegatedProposalAction_Resolve] [toAnyContractId cid]
-
-  -- Clean up old delegated proposals
-  let archiveMissingProposals = dedup $ map fst
-                              $ filter (\(_, dp) -> dp.proposal `notElem` map snd ownedProposals) delegatedProposals
-  forA_ archiveMissingProposals $ \cid -> emitCommands [exerciseCmd cid Archive] [toAnyContractId cid]
-
-notifyEmployees : Party -> ACS -> TriggerA ()
-notifyEmployees party acs = do
-  let ownedNotifications = filter (\(_, n) -> n.receiver == party) $ getContracts @Notification acs
-  return ()
-
+-- TODO: see if there is a better way to exercise contracts without duplications
 -- we resort to the n^2 version for now. Once we have Maps we can use those to implement a more efficient dedup.
 dedup : Eq k => [k] -> [k]
 dedup [] = []
