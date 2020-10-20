@@ -1,0 +1,39 @@
+module Model.Proposal where
+
+import Model.Notification
+
+template Proposal
+  with
+    proposer : Party
+    proposedTo : Party
+    proposal : Text
+  where
+    signatory proposer
+    observer proposedTo
+    key (proposer, proposedTo, proposal) : (Party, Party, Text)
+    maintainer key._1
+    controller proposedTo can
+      Proposal_Accept : ()
+        do
+          create Agreement with text = proposal, ..
+          create Notification with
+              sender = proposedTo
+              receiver = proposer, message = "The proposal: '" <> proposal <> "' was accepted."
+          return ()
+      Proposal_Reject : ()
+        do
+          create Notification with
+              sender = proposedTo
+              receiver = proposer, message = "The proposal: '" <> proposal <> "' was rejected."
+          return ()
+
+template Agreement
+  with
+    proposer : Party
+    proposedTo : Party
+    text : Text
+  where
+    signatory proposer, proposedTo
+
+    key (proposer, proposedTo, text) : (Party, Party, Text)
+    maintainer key._1
