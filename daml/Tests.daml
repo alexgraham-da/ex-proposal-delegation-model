@@ -40,13 +40,13 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   tc@(TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
   -- add employeeA as a reviewer (TODO: make this go through the company)
-  submit a1 $ createCmd EmployeeReviewer with employee = a1, company = companyA
+  a1Reviewer <- submit companyA $ createCmd EmployeeReviewer with employee = a1, company = companyA
 
   -- add employeeB as a submitter
+  b1Proposer <- submit companyB $ createCmd EmployeeProposer with employee = b1, company = companyB
 
-  proposalId <- b1 `submit` exerciseCmd cbInternalId CompanyInternal_MakeProposal with
-        employee = b1, proposedTo = companyA
-        proposalText = "B1 proposing to Company A"
+  proposalId <- b1 `submit` exerciseCmd b1Proposer EmployeeProposer_MakeProposal with
+      proposedTo = companyA, proposalText = "B1 proposing to Company A"
 
   return (lp,proposalId)
 
@@ -58,22 +58,21 @@ testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId
 
   proposal <- fromSome <$> queryContractId companyA proposalId
 
-  -- EmployeeA1 should have a delegated proposal
-  someDelegatedProposal1 <- getDelegatedProposal caInternal proposal a1
-  assertMsg "delegated proposal not found" $ isSome someDelegatedProposal1
-
   -- EmployeeA2 is not a reviewer
-  someDelegatedProposal2 <- getDelegatedProposal caInternal proposal a2
-  assertMsg "Employee 2 is not a reviewer, so should not have a contract" $ isNone someDelegatedProposal2
+  assertMsg "Employee A2 is not a reviewer, so should not have a proposal contract"
+    =<< isNone <$> queryDelegatedProposal caInternal proposal a2
+
+  -- EmployeeA1 should have a delegated proposal
+  someDelegatedProposal1 <- queryDelegatedProposal caInternal proposal a1
+  assertMsg "delegated proposal not found for employee A1" $ isSome someDelegatedProposal1
 
   let (dpId,_) = fromSome someDelegatedProposal1
   a1 `submit` exerciseCmd dpId DelegatedProposal_Accept
 
   return (lp,proposal)
   where
-    getDelegatedProposal : CompanyInternal -> Proposal -> Party -> Script (Optional (ContractPair DelegatedProposal))
-    getDelegatedProposal ci p e =
-      queryContractKey e $ key DelegatedProposal with proposal = p, internal = ci, employee = e
+    queryDelegatedProposal : CompanyInternal -> Proposal -> Party -> Script (Optional (ContractPair DelegatedProposal))
+    queryDelegatedProposal internal proposal employee = queryContractKey employee $ key DelegatedProposal with ..
 
 testStepThree : (LedgerParties,Proposal) -> Script ()
 testStepThree (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), p) = do

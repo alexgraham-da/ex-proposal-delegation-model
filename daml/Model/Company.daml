@@ -1,5 +1,7 @@
 module Model.Company where
 
+import DA.Optional
+
 import Model.Proposal
 
 template Company
@@ -65,9 +67,31 @@ template CompanyInternal
         proposalText : Text
       controller employee
       do
+        proposalContract <- lookupByKey @EmployeeProposer (employee, this.company.owner)
         assertMsg "Employee must be in company" $ elem employee employees
+        assertMsg "Employee must have the proposal role" $ isSome proposalContract
         assertMsg "Cannot propose to own company" $ proposedTo /= this.company.owner
         let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
+        create proposal
+
+
+template EmployeeProposer
+  with
+    employee : Party
+    company : Party
+  where
+    signatory company
+    observer employee
+    key (employee, company) : (Party, Party)
+    maintainer key._2
+    nonconsuming choice EmployeeProposer_MakeProposal : ContractId Proposal
+      with
+        proposedTo : Party
+        proposalText : Text
+      controller employee
+      do
+        assertMsg "Cannot propose to own company" $ proposedTo /= company
+        let proposal = Proposal with proposer = company, proposal = proposalText, ..
         create proposal
 
 
@@ -76,11 +100,11 @@ template EmployeeReviewer
     employee : Party
     company : Party
   where
-    signatory employee
-    observer company
+    signatory company
+    observer employee
     key (employee, company) : (Party, Party)
 
-    maintainer key._1
+    maintainer key._2
 
 
 template Employee
