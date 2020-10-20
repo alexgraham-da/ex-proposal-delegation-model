@@ -4,11 +4,13 @@
 module ProposalTrigger where
 
 import DA.Next.Map (Map)
-import DA.Foldable
+import DA.Foldable hiding (elem)
 
 import Daml.Trigger
 
-import Templates
+import Model.Company
+import Model.Proposal
+import Model.Notification
 
 -- TRIGGER_BEGIN
 handleProposals : Trigger ()
@@ -53,8 +55,12 @@ handleDelegation party acs ownedCompany employees = do
   let delegatedProposals = getContracts @DelegatedProposal acs
   let ownedProposals = filter (\(_, p) -> p.proposedTo == party) proposals
 
+  -- Only select employees with Reviewer contract
+  let reviewers = map ((\(EmployeeReviewer e _) -> e) . snd) $ getContracts @EmployeeReviewer acs
+
   -- Create delegated proposals
-  let newDelegatedProposals = [DelegatedProposal p (snd ownedCompany) e | e <- employees, (_,p) <- ownedProposals]
+  let newDelegatedProposals = [DelegatedProposal p (snd ownedCompany) e | e     <- employees, e `elem` reviewers
+                                                                        , (_,p) <- ownedProposals]
   let createDelegatedProposals = filter (\dp -> dp `notElem` (map snd delegatedProposals)) newDelegatedProposals
 
   mapA_ dedupCreate createDelegatedProposals
@@ -75,8 +81,8 @@ handleNotifications party acs employees = do
   let notifications = getContracts @Notification acs
   let ownedNotifications = filter (\(_, n) -> n.receiver == party) notifications
   let toPassedMessage n = n.message <> " (" <> show n.sender <> ")"
-  let newNotifications = [Notification party e (toPassedMessage n) | e    <- employees
-                                                                   ,(_,n) <- ownedNotifications]
+  let newNotifications = [Notification party e (toPassedMessage n) | e     <- employees
+                                                                   , (_,n) <- ownedNotifications]
   let createNotifications = filter (\n -> n `notElem` (map snd notifications)) newNotifications
 
   mapA_ dedupCreate createNotifications

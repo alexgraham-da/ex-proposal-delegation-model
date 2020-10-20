@@ -1,0 +1,13 @@
+module Model.Notification where
+
+template Notification
+  with
+    sender : Party
+    receiver : Party
+    message : Text
+  where
+    signatory sender
+    controller receiver can
+      Notification_Dismiss : ()
+        do return ()
+

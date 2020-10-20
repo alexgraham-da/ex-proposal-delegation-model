@@ -1,7 +1,7 @@
 
 module Main where
 
-import Templates
+import Model.Company
 
 test = scenario do
   companyA <- getParty "Company A"
@@ -36,10 +36,6 @@ test = scenario do
   -- a1 is not in management
   a1 `submitMustFail` do
       exercise caInternalId CompanyInternal_UpdateCompanyName with employee = a1, newName = "Company Eh2"
-
-  -- caId <- a2 `submit` do
-  --     -- (cId,_) <- fetchByKey @CompanyInternal (key caInternal)
-  --     exercise caInternalId CompanyInternal_UpdateCompanyName with employee = a2, newName = "Company Eh Two"
 
   proposalId <- b1 `submit` exercise cbInternalId CompanyInternal_MakeProposal with
         employee = b1, proposedTo = companyA

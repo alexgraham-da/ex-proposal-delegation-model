@@ -1,5 +1,6 @@
-module Templates where
+module Model.Company where
 
+import Model.Proposal
 
 template Company
   with
@@ -70,30 +71,24 @@ template CompanyInternal
         create proposal
 
 
-template Proposal
+template EmployeeReviewer
   with
-    proposer : Party
-    proposedTo : Party
-    proposal : Text
+    employee : Party
+    company : Party
   where
-    signatory proposer
-    observer proposedTo
-    key (proposer, proposedTo, proposal) : (Party, Party, Text)
+    signatory employee
+    observer company
+    key (employee, company) : (Party, Party)
+
     maintainer key._1
-    controller proposedTo can
-      Proposal_Accept : ()
-        do
-          create Agreement with text = proposal, ..
-          create Notification with
-              sender = proposedTo
-              receiver = proposer, message = "The proposal: '" <> proposal <> "' was accepted."
-          return ()
-      Proposal_Reject : ()
-        do
-          create Notification with
-              sender = proposedTo
-              receiver = proposer, message = "The proposal: '" <> proposal <> "' was rejected."
-          return ()
+
+
+template Employee
+  with
+    party : Party
+    name : Text
+  where
+    signatory party
 
 
 template DelegatedProposal
@@ -133,34 +128,3 @@ template DelegatedProposalAction
           case action of
             DPAccept -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
             DPReject -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Reject
-
-template Agreement
-  with
-    proposer : Party
-    proposedTo : Party
-    text : Text
-  where
-    signatory proposer, proposedTo
-
-    key (proposer, proposedTo, text) : (Party, Party, Text)
-    maintainer key._1
-
-template Notification
-  with
-    sender : Party
-    receiver : Party
-    message : Text
-  where
-    signatory sender
-    controller receiver can
-      Notification_Dismiss : ()
-        do return ()
-
-
-template Employee
-  with
-    party : Party
-    name : Text
-  where
-    signatory party
-

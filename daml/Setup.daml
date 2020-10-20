@@ -4,7 +4,7 @@ module Setup where
 
 import Daml.Script
 
-import Templates
+import Model.Company
 
 data LedgerParties = LedgerParties with
   public : Party
