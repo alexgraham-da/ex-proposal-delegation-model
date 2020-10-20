@@ -60,20 +60,6 @@ template CompanyInternal
         assertMsg "Employee must be in management" $ elem employee management
         exerciseByKey @Company (key company) Company_UpdateName with newName
 
-    nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
-      with
-        employee : Party
-        proposedTo : Party
-        proposalText : Text
-      controller employee
-      do
-        proposalContract <- lookupByKey @EmployeeProposer (employee, this.company.owner)
-        assertMsg "Employee must be in company" $ elem employee employees
-        assertMsg "Employee must have the proposal role" $ isSome proposalContract
-        assertMsg "Cannot propose to own company" $ proposedTo /= this.company.owner
-        let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
-        create proposal
-
 
 template EmployeeProposer
   with
