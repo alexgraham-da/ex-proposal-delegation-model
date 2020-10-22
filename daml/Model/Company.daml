@@ -2,6 +2,8 @@ module Model.Company where
 
 import Model.Proposal
 
+import DA.Next.Set
+
 template Company
   with
     owner : Party
@@ -31,7 +33,7 @@ template Company
 template CompanyInternal
   with
     company : Company
-    employees : [Party]
+    employees : Set Party
     management : [Party]
   where
     signatory company.owner
@@ -47,7 +49,7 @@ template CompanyInternal
           let management' = if manager
                             then employee :: management
                             else management
-          create this with employees = employee :: employees, management = management'
+          create this with employees = insert employee employees, management = management'
 
     nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
       with
@@ -58,16 +60,59 @@ template CompanyInternal
         assertMsg "Employee must be in management" $ elem employee management
         exerciseByKey @Company (key company) Company_UpdateName with newName
 
-    nonconsuming choice CompanyInternal_MakeProposal : ContractId Proposal
+
+template EmployeeManager
+  with
+    employee : Party
+    company : Company
+  where
+    signatory (signatory company)
+    observer employee
+    key (employee, company.owner) : (Party, Party)
+    maintainer key._2
+    nonconsuming choice EmployeeManager_AddEmployee : ContractId CompanyInternal
       with
-        employee : Party
+        newEmployee : Party
+        name : Text
+      controller employee
+      do
+        (companyInternalId, companyInternal) <- fetchByKey @CompanyInternal company
+        create Employee with party = newEmployee, company = company.owner, ..
+        archive companyInternalId
+        create companyInternal with employees = insert newEmployee companyInternal.employees
+
+    nonconsuming choice EmployeeManager_AddProposer : ContractId EmployeeProposer
+      with
+        newProposer : Party
+      controller employee
+      do
+        create EmployeeProposer with employee = newProposer, company = company.owner
+
+    nonconsuming choice EmployeeManager_AddReviewer : ContractId EmployeeReviewer
+      with
+        newReviewer : Party
+      controller employee
+      do
+        create EmployeeReviewer with employee = newReviewer, company = company.owner
+
+
+template EmployeeProposer
+  with
+    employee : Party
+    company : Party
+  where
+    signatory company
+    observer employee
+    key (employee, company) : (Party, Party)
+    maintainer key._2
+    nonconsuming choice EmployeeProposer_MakeProposal : ContractId Proposal
+      with
         proposedTo : Party
         proposalText : Text
       controller employee
       do
-        assertMsg "Employee must be in company" $ elem employee employees
-        assertMsg "Cannot propose to own company" $ proposedTo /= this.company.owner
-        let proposal = Proposal with proposer = this.company.owner, proposal = proposalText, ..
+        assertMsg "Cannot propose to own company" $ proposedTo /= company
+        let proposal = Proposal with proposer = company, proposal = proposalText, ..
         create proposal
 
 
@@ -76,19 +121,23 @@ template EmployeeReviewer
     employee : Party
     company : Party
   where
-    signatory employee
-    observer company
+    signatory company
+    observer employee
     key (employee, company) : (Party, Party)
 
-    maintainer key._1
+    maintainer key._2
 
 
 template Employee
   with
     party : Party
+    company : Party
     name : Text
   where
-    signatory party
+    signatory company
+    observer party
+    key (party, company) : (Party, Party)
+    maintainer key._2
 
 
 template DelegatedProposal

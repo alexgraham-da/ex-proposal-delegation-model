@@ -35,10 +35,10 @@ stop_daml_server:
 
 # triggers
 $(trigger_a_pid): |$(state_dir) $(trigger_dir)
-	cd triggers && (./run_trigger.sh CompanyA > ../$(trigger_a_log) & echo "$$!" > ../$(trigger_a_pid))
+	cd triggers && (./run_trigger.sh CompanyATest > ../$(trigger_a_log) & echo "$$!" > ../$(trigger_a_pid))
 
 $(trigger_b_pid): |$(state_dir) $(trigger_dir)
-	cd triggers && (./run_trigger.sh CompanyB > ../$(trigger_b_log) & echo "$$!" > ../$(trigger_b_pid))
+	cd triggers && (./run_trigger.sh CompanyBTest > ../$(trigger_b_log) & echo "$$!" > ../$(trigger_b_pid))
 
 start_triggers: $(trigger_a_pid) $(trigger_b_pid)
 
