@@ -4,6 +4,7 @@
 module ProposalTrigger where
 
 import DA.Next.Map (Map)
+import qualified DA.Next.Set as Set
 import DA.Foldable hiding (elem)
 
 import Daml.Trigger
@@ -38,7 +39,7 @@ handleProposalsRule party acs _time commandsInFlight () = mapA_ go ownedCompanie
 -- |Performs all company actions for one owned InternalCompany
 handleSingleCompany : Party -> ACS -> Time -> Map CommandId [Command] -> () -> ContractPair CompanyInternal -> TriggerA ()
 handleSingleCompany party acs _time commandsInFlight () ownedCompany = do
-  let employees = ownedCompany._2.employees
+  let employees = Set.toList $ ownedCompany._2.employees
 
   -- Delegate proposals, resolve proposal actions and clean up old delegated proposals
   handleDelegation party acs ownedCompany employees

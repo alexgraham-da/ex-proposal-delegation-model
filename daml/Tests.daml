@@ -1,6 +1,7 @@
 module Tests where
 
 import DA.Optional
+import DA.Next.Set hiding (null)
 
 import Daml.Script
 
@@ -29,21 +30,36 @@ findOrCreate party contract = do
 reinitialize : LedgerParties -> Script TestContracts
 reinitialize (LedgerParties public companyA companyB a1 a2 b1 b2) = do
   cA         <- findOrCreate companyA $ Company with owner = companyA, name = "Company A", observers = [public]
-  caInternal <- findOrCreate companyA $ CompanyInternal with company = snd cA, employees = [a1, a2], management = [a1]
+  caInternal <- findOrCreate companyA $ CompanyInternal with company = snd cA, employees = fromList [a2], management = [a1]
   cB         <- findOrCreate companyB $ Company with owner = companyB, name = "Company B", observers = [public]
-  cbInternal <- findOrCreate companyB $ CompanyInternal with company = snd cB, employees = [a1, a2], management = [b1]
+  cbInternal <- findOrCreate companyB $ CompanyInternal with company = snd cB, employees = fromList [b2], management = [b1]
 
   return $ TestContracts cA caInternal cB cbInternal
+
+testInit : Script TestSetupResults
+testInit = allocateParties >>= initializeTests
 
 initializeTests : LedgerParties -> Script TestSetupResults
 initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   tc@(TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
-  -- add employeeA as a reviewer (TODO: make this go through the company)
-  a1Reviewer <- submit companyA $ createCmd EmployeeReviewer with employee = a1, company = companyA
+  -- add employeeA2 as a manager
+  managerIdA <- companyA `submit` createCmd EmployeeManager with employee = a2, company = cA
 
-  -- add employeeB as a submitter
-  b1Proposer <- submit companyB $ createCmd EmployeeProposer with employee = b1, company = companyB
+  -- add employeeB2 as a manager
+  managerIdB <- companyB `submit` createCmd EmployeeManager with employee = b2, company = cB
+
+  -- add employees to company
+  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a1, name = "Employee A1"
+  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a2, name = "Employee A2"
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b1, name = "Employee B1"
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b2, name = "Employee B2"
+
+ -- add employeeA1 as a reviewer
+  a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a1
+
+  -- add employeeB1 as a submitter
+  b1Proposer <- b2 `submit` exerciseCmd managerIdB EmployeeManager_AddProposer with newProposer = b1
 
   proposalId <- b1 `submit` exerciseCmd b1Proposer EmployeeProposer_MakeProposal with
       proposedTo = companyA, proposalText = "B1 proposing to Company A"
@@ -51,6 +67,8 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   return (lp,proposalId)
 
 type TestSetupResults = (LedgerParties,ContractId Proposal)
+
+-- >> CompanyA trigger creates DelegatedProposals
 
 testStepTwo : TestSetupResults -> Script (LedgerParties,Proposal)
 testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId) = do
@@ -73,6 +91,9 @@ testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId
   where
     queryDelegatedProposal : CompanyInternal -> Proposal -> Party -> Script (Optional (ContractPair DelegatedProposal))
     queryDelegatedProposal internal proposal employee = queryContractKey employee $ key DelegatedProposal with ..
+
+-- >> CompanyA trigger resolves proposal action
+-- >> CompanyB trigger notifies employees
 
 testStepThree : (LedgerParties,Proposal) -> Script ()
 testStepThree (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), p) = do
