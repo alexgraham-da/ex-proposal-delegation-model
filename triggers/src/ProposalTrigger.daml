@@ -47,6 +47,9 @@ handleSingleCompany party acs _time commandsInFlight () ownedCompany = do
   -- Send notifications to employees
   handleNotifications party acs employees
 
+  -- Expose relevant contracts
+  handleExpositions party acs employees
+
 -- |Handles all proposal delegation
 handleDelegation : Party -> ACS -> ContractPair CompanyInternal -> [Party] -> TriggerA ()
 handleDelegation party acs ownedCompany employees = do
@@ -90,6 +93,12 @@ handleNotifications party acs employees = do
 
   -- Remove owned notifications after passing along to employees
   forA_ ownedNotifications $ \(cid,_) -> emitCommands [exerciseCmd cid Notification_Dismiss] [toAnyContractId cid]
+
+handleExpositions : Party -> ACS -> [Party] -> TriggerA ()
+handleExpositions party acs employees = do
+  let agreements = getContracts @Agreement acs
+  let exposedAgreements = [ExposedAgreement party employees a | (_,a) <- agreements]
+  mapA_ dedupCreate exposedAgreements
 
 -- TODO: see if there is a better way to exercise contracts without duplications
 -- we resort to the n^2 version for now. Once we have Maps we can use those to implement a more efficient dedup.

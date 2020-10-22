@@ -37,3 +37,14 @@ template Agreement
 
     key (proposer, proposedTo, text) : (Party, Party, Text)
     maintainer key._1
+
+template ExposedAgreement
+  with
+    exposer : Party
+    exposedTo : [Party]
+    agreement : Agreement
+  where
+    signatory exposer
+    observer exposedTo
+    key (exposer, agreement) : (Party, Agreement)
+    maintainer key._1

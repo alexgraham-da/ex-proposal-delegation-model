@@ -20,6 +20,14 @@ data TestContracts = TestContracts with
   cbInternal : ContractPair CompanyInternal
     deriving (Show,Eq)
 
+-- type Results a = Script (LedgerParties, a)
+data Results a = Results with
+  ledgerParties : LedgerParties
+  payload : a
+
+results : LedgerParties -> a -> Script (Results a)
+results ledgerParties payload = return $ Results with ..
+
 findOrCreate : (Template t, TemplateKey t k) => Party -> t -> Script (ContractId t, t)
 findOrCreate party contract = do
   opt <- queryContractKey party (key contract)
@@ -95,18 +103,33 @@ testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId
 -- >> CompanyA trigger resolves proposal action
 -- >> CompanyB trigger notifies employees
 
-testStepThree : (LedgerParties,Proposal) -> Script ()
+testStepThree : (LedgerParties,Proposal) -> Script (LedgerParties, Agreement)
 testStepThree (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), p) = do
   (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
   let (Proposal proposer proposedTo proposal) = p
   let agreement = Agreement with proposer = proposer, proposedTo = proposedTo, text = proposal
 
-  someAgreement : Optional (ContractPair Agreement) <- queryContractKey companyA $ key agreement
+  someAgreement <- queryContractKey @Agreement companyA $ key agreement
   assertMsg "agreement not found" $ isSome someAgreement
 
   let notification = Notification with sender = companyB, receiver = b1, message = ("The proposal: '" <> proposal <> "' was accepted.")
-  notifications : [ContractPair Notification] <- query b1
+  notifications <- query @Notification b1
   assertMsg "employees of company b must have been notified" $ not $ null notifications
+
+  results lp agreement
+  -- return (lp,agreement)
+
+  -- >> CompanyA/CompanyB triggers create Exposed contracts
+
+testStepFour : (LedgerParties, Agreement) -> Script ()
+testStepFour (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), agreement) = do
+  (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
+
+  someExposedAgreementA <- queryContractKey @ExposedAgreement a1 (companyA, agreement)
+  assertMsg "exposed agreement not found for employee of company A" $ isSome someExposedAgreementA
+
+  someExposedAgreementB <- queryContractKey @ExposedAgreement b1 (companyB, agreement)
+  assertMsg "exposed agreement not found for employee of company B" $ isSome someExposedAgreementA
 
   return ()
