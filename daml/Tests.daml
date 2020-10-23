@@ -23,10 +23,12 @@ data TestContracts = TestContracts with
 -- type Results a = Script (LedgerParties, a)
 data Results a = Results with
   ledgerParties : LedgerParties
-  payload : a
+  payload       : a
 
 results : LedgerParties -> a -> Script (Results a)
 results ledgerParties payload = return $ Results with ..
+
+type Step a = Script (Results a)
 
 findOrCreate : (Template t, TemplateKey t k) => Party -> t -> Script (ContractId t, t)
 findOrCreate party contract = do
@@ -44,10 +46,10 @@ reinitialize (LedgerParties public companyA companyB a1 a2 b1 b2) = do
 
   return $ TestContracts cA caInternal cB cbInternal
 
-testInit : Script TestSetupResults
+testInit : Script (Results (ContractId Proposal))
 testInit = allocateParties >>= initializeTests
 
-initializeTests : LedgerParties -> Script TestSetupResults
+initializeTests : LedgerParties -> Step (ContractId Proposal) -- Script (Results (ContractId Proposal))
 initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   tc@(TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
@@ -72,14 +74,14 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   proposalId <- b1 `submit` exerciseCmd b1Proposer EmployeeProposer_MakeProposal with
       proposedTo = companyA, proposalText = "B1 proposing to Company A"
 
-  return (lp,proposalId)
+  results lp proposalId
 
 type TestSetupResults = (LedgerParties,ContractId Proposal)
 
 -- >> CompanyA trigger creates DelegatedProposals
 
-testStepTwo : TestSetupResults -> Script (LedgerParties,Proposal)
-testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId) = do
+testStepTwo : Results (ContractId Proposal) -> Step Proposal
+testStepTwo (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) proposalId) = do
   (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
   proposal <- fromSome <$> queryContractId companyA proposalId
@@ -95,7 +97,8 @@ testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId
   let (dpId,_) = fromSome someDelegatedProposal1
   a1 `submit` exerciseCmd dpId DelegatedProposal_Accept
 
-  return (lp,proposal)
+  results lp proposal
+
   where
     queryDelegatedProposal : CompanyInternal -> Proposal -> Party -> Script (Optional (ContractPair DelegatedProposal))
     queryDelegatedProposal internal proposal employee = queryContractKey employee $ key DelegatedProposal with ..
@@ -103,8 +106,8 @@ testStepTwo (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), proposalId
 -- >> CompanyA trigger resolves proposal action
 -- >> CompanyB trigger notifies employees
 
-testStepThree : (LedgerParties,Proposal) -> Script (LedgerParties, Agreement)
-testStepThree (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), p) = do
+testStepThree : Results Proposal -> Step Agreement -- Script (Results Agreement)
+testStepThree (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) p) = do
   (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
   let (Proposal proposer proposedTo proposal) = p
@@ -118,12 +121,11 @@ testStepThree (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), p) = do
   assertMsg "employees of company b must have been notified" $ not $ null notifications
 
   results lp agreement
-  -- return (lp,agreement)
 
-  -- >> CompanyA/CompanyB triggers create Exposed contracts
+-- >> CompanyA/CompanyB triggers create Exposed contracts
 
-testStepFour : (LedgerParties, Agreement) -> Script ()
-testStepFour (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), agreement) = do
+testStepFour : Results Agreement -> Step ()
+testStepFour (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) agreement) = do
   (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
   someExposedAgreementA <- queryContractKey @ExposedAgreement a1 (companyA, agreement)
@@ -132,4 +134,4 @@ testStepFour (lp@(LedgerParties public companyA companyB a1 a2 b1 b2), agreement
   someExposedAgreementB <- queryContractKey @ExposedAgreement b1 (companyB, agreement)
   assertMsg "exposed agreement not found for employee of company B" $ isSome someExposedAgreementA
 
-  return ()
+  results lp ()
