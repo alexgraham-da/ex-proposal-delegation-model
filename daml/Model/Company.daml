@@ -127,6 +127,7 @@ template EmployeeReviewer
 
     maintainer key._2
 
+
 template Employee
   with
     party : Party
@@ -138,41 +139,3 @@ template Employee
     key (party, company) : (Party, Party)
     maintainer key._2
 
-
-template DelegatedProposal
-  with
-    proposal : Proposal
-    internal : CompanyInternal
-    employee : Party
-  where
-    signatory internal.company.owner
-    observer employee
-    key (proposal, internal, employee) : (Proposal, CompanyInternal, Party)
-    maintainer key._2.company.owner
-
-    controller employee can
-      DelegatedProposal_Accept : ContractId DelegatedProposalAction
-        do
-          create DelegatedProposalAction with proposal = this, action = DPAccept, employee
-
-      DelegatedProposal_Reject : ContractId DelegatedProposalAction
-        do
-          create DelegatedProposalAction with proposal = this, action = DPReject, employee
-
-
-data DPAction = DPAccept | DPReject deriving (Show,Eq)
-
-template DelegatedProposalAction
-  with
-    proposal : DelegatedProposal
-    action   : DPAction
-    employee : Party
-  where
-    signatory employee
-    observer (signatory proposal)
-    controller (signatory proposal) can
-      DelegatedProposalAction_Resolve : ()
-        do
-          case action of
-            DPAccept -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
-            DPReject -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Reject

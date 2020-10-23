@@ -88,10 +88,10 @@ testStepTwo (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) pro
 
   -- EmployeeA2 is not a reviewer
   assertMsg "Employee A2 is not a reviewer, so should not have a proposal contract"
-    =<< isNone <$> queryDelegatedProposal caInternal proposal a2
+    =<< isNone <$> queryDelegatedProposal companyA proposal a2
 
   -- EmployeeA1 should have a delegated proposal
-  someDelegatedProposal1 <- queryDelegatedProposal caInternal proposal a1
+  someDelegatedProposal1 <- queryDelegatedProposal companyA proposal a1
   assertMsg "delegated proposal not found for employee A1" $ isSome someDelegatedProposal1
 
   let (dpId,_) = fromSome someDelegatedProposal1
@@ -100,8 +100,8 @@ testStepTwo (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) pro
   results lp proposal
 
   where
-    queryDelegatedProposal : CompanyInternal -> Proposal -> Party -> Script (Optional (ContractPair DelegatedProposal))
-    queryDelegatedProposal internal proposal employee = queryContractKey employee $ key DelegatedProposal with ..
+    queryDelegatedProposal : Party -> Proposal -> Party -> Script (Optional (ContractPair DelegatedProposal))
+    queryDelegatedProposal company proposal employee = queryContractKey employee $ key DelegatedProposal with ..
 
 -- >> CompanyA trigger resolves proposal action
 -- >> CompanyB trigger notifies employees
