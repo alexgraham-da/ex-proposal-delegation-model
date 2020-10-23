@@ -38,13 +38,13 @@ template Agreement
     key (proposer, proposedTo, text) : (Party, Party, Text)
     maintainer key._1
 
-template ExposedAgreement
+template AgreementInternal
   with
-    exposer : Party
-    exposedTo : [Party]
+    company : Party
+    observers : [Party]
     agreement : Agreement
   where
-    signatory exposer
-    observer exposedTo
-    key (exposer, agreement) : (Party, Agreement)
+    signatory company
+    observer observers
+    key (company, agreement) : (Party, Agreement)
     maintainer key._1

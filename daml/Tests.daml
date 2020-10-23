@@ -49,7 +49,7 @@ reinitialize (LedgerParties public companyA companyB a1 a2 b1 b2) = do
 testInit : Script (Results (ContractId Proposal))
 testInit = allocateParties >>= initializeTests
 
-initializeTests : LedgerParties -> Step (ContractId Proposal) -- Script (Results (ContractId Proposal))
+initializeTests : LedgerParties -> Step (ContractId Proposal)
 initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   tc@(TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
@@ -106,7 +106,7 @@ testStepTwo (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) pro
 -- >> CompanyA trigger resolves proposal action
 -- >> CompanyB trigger notifies employees
 
-testStepThree : Results Proposal -> Step Agreement -- Script (Results Agreement)
+testStepThree : Results Proposal -> Step Agreement
 testStepThree (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) p) = do
   (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
@@ -128,10 +128,10 @@ testStepFour : Results Agreement -> Step ()
 testStepFour (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) agreement) = do
   (TestContracts (caId, cA) (caInternalId, caInternal) (cbId, cB) (cbInternalId, cbInternal)) <- reinitialize lp
 
-  someExposedAgreementA <- queryContractKey @ExposedAgreement a1 (companyA, agreement)
-  assertMsg "exposed agreement not found for employee of company A" $ isSome someExposedAgreementA
+  maybeAgreementInternalA <- queryContractKey @AgreementInternal a1 (companyA, agreement)
+  assertMsg "exposed agreement not found for employee of company A" $ isSome maybeAgreementInternalA
 
-  someExposedAgreementB <- queryContractKey @ExposedAgreement b1 (companyB, agreement)
-  assertMsg "exposed agreement not found for employee of company B" $ isSome someExposedAgreementA
+  maybeAgreementInternalB <- queryContractKey @AgreementInternal b1 (companyB, agreement)
+  assertMsg "exposed agreement not found for employee of company B" $ isSome maybeAgreementInternalB
 
   results lp ()
