@@ -44,6 +44,9 @@ handleSingleCompany party acs _time commandsInFlight () ownedCompany = do
   -- Delegate proposals, resolve proposal actions and clean up old delegated proposals
   handleDelegation party acs ownedCompany employees
 
+  -- Resolve any action requests
+  handleCompanyActions party acs
+
   -- Send notifications to employees
   handleNotifications party acs employees
 
@@ -93,6 +96,13 @@ handleNotifications party acs employees = do
 
   -- Remove owned notifications after passing along to employees
   forA_ ownedNotifications $ \(cid,_) -> emitCommands [exerciseCmd cid Notification_Dismiss] [toAnyContractId cid]
+
+-- |Resolves all action requests
+handleCompanyActions : Party -> ACS -> TriggerA ()
+handleCompanyActions party acs = do
+  -- Resolve action requests
+  let companyActionRequests = getContracts @CompanyActionRequest acs
+  forA_ companyActionRequests $ \(cid,_) -> emitCommands [exerciseCmd cid CompanyActionRequest_Resolve] [toAnyContractId cid]
 
 handleInternalContracts : Party -> ACS -> [Party] -> TriggerA ()
 handleInternalContracts party acs employees = do

@@ -12,8 +12,8 @@ template Company
   where
     signatory owner
     observer observers
-    key (owner, name) : (Party, Text)
-    maintainer key._1
+    key owner : Party
+    maintainer key
     controller owner can
       Company_UpdateName : ContractId Company
         with
@@ -38,8 +38,8 @@ template CompanyInternal
   where
     signatory company.owner
     observer employees
-    key company : Company
-    maintainer key.owner
+    key company.owner : Party
+    maintainer key
     controller company.owner can
       CompanyInternal_AddEmployee : ContractId CompanyInternal
         with
@@ -73,10 +73,10 @@ template EmployeeManager
     nonconsuming choice EmployeeManager_AddEmployee : ContractId CompanyInternal
       with
         newEmployee : Party
-        name : Text
+        fullName : Text
       controller employee
       do
-        (companyInternalId, companyInternal) <- fetchByKey @CompanyInternal company
+        (companyInternalId, companyInternal) <- fetchByKey @CompanyInternal company.owner
         create Employee with party = newEmployee, company = company.owner, ..
         archive companyInternalId
         create companyInternal with employees = insert newEmployee companyInternal.employees
@@ -94,6 +94,13 @@ template EmployeeManager
       controller employee
       do
         create EmployeeReviewer with employee = newReviewer, company = company.owner
+
+    nonconsuming choice EmployeeManager_ChangeCompanyName : ContractId CompanyActionRequest
+      with
+        newName : Text
+      controller employee
+      do
+        create CompanyActionRequest with action = UpdateName newName, ..
 
 
 template EmployeeProposer
@@ -132,10 +139,25 @@ template Employee
   with
     party : Party
     company : Party
-    name : Text
+    fullName : Text
   where
     signatory company
     observer party
     key (party, company) : (Party, Party)
     maintainer key._2
 
+
+data CompanyAction = UpdateName Text deriving (Eq, Show)
+
+template CompanyActionRequest
+  with
+    employee : Party
+    company : Company
+    action : CompanyAction
+  where
+    signatory company.owner
+    controller company.owner can
+      CompanyActionRequest_Resolve : ContractId Company
+        do
+          case action of
+            (UpdateName newName) -> exerciseByKey @Company (key company) Company_UpdateName with ..

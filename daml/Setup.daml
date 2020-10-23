@@ -57,16 +57,16 @@ doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
   -- add employeeB2 as a manager
   managerIdB <- companyB `submit` createCmd EmployeeManager with employee = b2, company = cB
 
-  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with  newEmployee = a1, name = "Employee A1"
-  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with  newEmployee = a2, name = "Employee A2"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with  newEmployee = b1, name = "Employee B1"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with  newEmployee = b2, name = "Employee B2"
+  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with  newEmployee = a1, fullName = "Employee A1"
+  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with  newEmployee = a2, fullName = "Employee A2"
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with  newEmployee = b1, fullName = "Employee B1"
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with  newEmployee = b2, fullName = "Employee B2"
 
- -- add employeeA1 as a reviewer
-  a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a1
-
-  -- add employeeB1 as a submitter
-  b1Proposer <- b2 `submit` exerciseCmd managerIdB EmployeeManager_AddProposer with newProposer = b1
-
+--  -- add employeeA1 as a reviewer
+--   a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a1
+--
+--   -- add employeeB1 as a submitter
+--   b1Proposer <- b2 `submit` exerciseCmd managerIdB EmployeeManager_AddProposer with newProposer = b1
+--
   return ()
 

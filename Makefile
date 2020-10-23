@@ -27,6 +27,7 @@ $(trigger_build_log): |$(state_dir)
 
 $(sandbox_pid): |$(daml_build_log)
 	daml start > $(sandbox_log) & echo "$$!" > $(sandbox_pid)
+	# daml sandbox .daml/dist/proposal-model-0.0.1.dar > $(sandbox_log) & echo "$$!" > $(sandbox_pid)
 
 start_daml_server: $(sandbox_pid)
 
@@ -35,10 +36,10 @@ stop_daml_server:
 
 # triggers
 $(trigger_a_pid): |$(state_dir) $(trigger_dir)
-	cd triggers && (./run_trigger.sh CompanyATest > ../$(trigger_a_log) & echo "$$!" > ../$(trigger_a_pid))
+	cd triggers && (./run_trigger.sh CompanyA$(TRIG) > ../$(trigger_a_log) & echo "$$!" > ../$(trigger_a_pid))
 
 $(trigger_b_pid): |$(state_dir) $(trigger_dir)
-	cd triggers && (./run_trigger.sh CompanyBTest > ../$(trigger_b_log) & echo "$$!" > ../$(trigger_b_pid))
+	cd triggers && (./run_trigger.sh CompanyB$(TRIG) > ../$(trigger_b_log) & echo "$$!" > ../$(trigger_b_pid))
 
 start_triggers: $(trigger_a_pid) $(trigger_b_pid)
 
