@@ -4,6 +4,7 @@ module Main where
 import DA.Next.Set
 
 import Model.Company
+import Model.Proposal
 
 test = scenario do
   companyA <- getParty "Company A"
@@ -58,7 +59,7 @@ test = scenario do
   -- Run by trigger:
   dpId <- companyA `submit` do
       proposal <- fetch proposalId
-      create DelegatedProposal with proposal, internal = caInternal, employee = a1
+      create DelegatedProposal with proposal, company = companyA, employee = a1
   -- end run by trigger
 
   delegatedProposalActionId <- submit a1 $ exercise dpId DelegatedProposal_Accept

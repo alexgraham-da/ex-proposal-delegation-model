@@ -2,6 +2,7 @@ module Model.Proposal where
 
 import Model.Notification
 
+
 template Proposal
   with
     proposer : Party
@@ -27,6 +28,7 @@ template Proposal
               receiver = proposer, message = "The proposal: '" <> proposal <> "' was rejected."
           return ()
 
+
 template Agreement
   with
     proposer : Party
@@ -38,6 +40,7 @@ template Agreement
     key (proposer, proposedTo, text) : (Party, Party, Text)
     maintainer key._1
 
+
 template AgreementInternal
   with
     company : Party
@@ -48,3 +51,42 @@ template AgreementInternal
     observer observers
     key (company, agreement) : (Party, Agreement)
     maintainer key._1
+
+
+template DelegatedProposal
+  with
+    proposal : Proposal
+    company : Party
+    employee : Party
+  where
+    signatory company
+    observer employee
+    key (proposal, company, employee) : (Proposal, Party, Party)
+    maintainer key._2
+
+    controller employee can
+      DelegatedProposal_Accept : ContractId DelegatedProposalAction
+        do
+          create DelegatedProposalAction with proposal = this, action = DPAccept, employee
+
+      DelegatedProposal_Reject : ContractId DelegatedProposalAction
+        do
+          create DelegatedProposalAction with proposal = this, action = DPReject, employee
+
+
+data DPAction = DPAccept | DPReject deriving (Show,Eq)
+
+template DelegatedProposalAction
+  with
+    proposal : DelegatedProposal
+    action   : DPAction
+    employee : Party
+  where
+    signatory employee
+    observer (signatory proposal)
+    controller (signatory proposal) can
+      DelegatedProposalAction_Resolve : ()
+        do
+          case action of
+            DPAccept -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Accept
+            DPReject -> exerciseByKey @Proposal (key proposal.proposal) Proposal_Reject

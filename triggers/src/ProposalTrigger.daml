@@ -63,8 +63,8 @@ handleDelegation party acs ownedCompany employees = do
   let reviewers = map ((\(EmployeeReviewer e _) -> e) . snd) $ getContracts @EmployeeReviewer acs
 
   -- Create delegated proposals
-  let newDelegatedProposals = [DelegatedProposal p (snd ownedCompany) e | e     <- employees, e `elem` reviewers
-                                                                        , (_,p) <- ownedProposals]
+  let newDelegatedProposals = [DelegatedProposal p party e | e     <- employees, e `elem` reviewers
+                                                           , (_,p) <- ownedProposals]
   let createDelegatedProposals = filter (\dp -> dp `notElem` (map snd delegatedProposals)) newDelegatedProposals
 
   mapA_ dedupCreate createDelegatedProposals
