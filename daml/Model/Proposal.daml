@@ -37,3 +37,14 @@ template Agreement
 
     key (proposer, proposedTo, text) : (Party, Party, Text)
     maintainer key._1
+
+template AgreementInternal
+  with
+    company : Party
+    observers : [Party]
+    agreement : Agreement
+  where
+    signatory company
+    observer observers
+    key (company, agreement) : (Party, Agreement)
+    maintainer key._1

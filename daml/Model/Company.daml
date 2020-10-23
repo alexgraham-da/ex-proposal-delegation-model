@@ -127,7 +127,6 @@ template EmployeeReviewer
 
     maintainer key._2
 
-
 template Employee
   with
     party : Party
