@@ -68,7 +68,7 @@ handleDelegation party acs ownedCompany employees = do
   -- Create delegated proposals
   let newDelegatedProposals = [DelegatedProposal p party e | e     <- employees, e `elem` reviewers
                                                            , (_,p) <- ownedProposals]
-  let createDelegatedProposals = filter (\dp -> dp `notElem` (map snd delegatedProposals)) newDelegatedProposals
+  let createDelegatedProposals = filter (`notElem` (map snd delegatedProposals)) newDelegatedProposals
 
   mapA_ dedupCreate createDelegatedProposals
 
@@ -90,7 +90,7 @@ handleNotifications party acs employees = do
   let toPassedMessage n = n.message <> " (" <> show n.sender <> ")"
   let newNotifications = [Notification party e (toPassedMessage n) | e     <- employees
                                                                    , (_,n) <- ownedNotifications]
-  let createNotifications = filter (\n -> n `notElem` (map snd notifications)) newNotifications
+  let createNotifications = filter (`notElem` (map snd notifications)) newNotifications
 
   mapA_ dedupCreate createNotifications
 
@@ -106,9 +106,11 @@ handleCompanyActions party acs = do
 
 handleInternalContracts : Party -> ACS -> [Party] -> TriggerA ()
 handleInternalContracts party acs employees = do
-  let agreements = getContracts @Agreement acs
-  let internalAgreements = [AgreementInternal party employees a | (_,a) <- agreements]
-  mapA_ dedupCreate internalAgreements
+  let agreements = map snd $ getContracts @Agreement acs
+  let internalAgreements = map snd $ getContracts @AgreementInternal acs
+  let newInternalAgreements = [AgreementInternal party employees a | a <- agreements]
+  let createInternalAgreements = filter (`notElem` internalAgreements) newInternalAgreements
+  mapA_ dedupCreate createInternalAgreements
 
 -- TODO: see if there is a better way to exercise contracts without duplications
 -- we resort to the n^2 version for now. Once we have Maps we can use those to implement a more efficient dedup.
