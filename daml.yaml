@@ -10,6 +10,8 @@ parties:
   - EmployeeA2
   - EmployeeB1
   - EmployeeB2
+  - CompanyATest
+  - CompanyBTest
 version: 0.0.1
 # trigger-dependencies-begin
 dependencies:
