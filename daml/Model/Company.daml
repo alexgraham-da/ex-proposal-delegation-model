@@ -74,6 +74,7 @@ template EmployeeManager
       with
         newEmployee : Party
         fullName : Text
+        email : Text
       controller employee
       do
         (companyInternalId, companyInternal) <- fetchByKey @CompanyInternal company.owner
@@ -140,10 +141,11 @@ template Employee
     party : Party
     company : Party
     fullName : Text
+    email : Text
   where
     signatory company
     observer party
-    key (party, company) : (Party, Party)
+    key (email, company) : (Text, Party)
     maintainer key._2
 
 
