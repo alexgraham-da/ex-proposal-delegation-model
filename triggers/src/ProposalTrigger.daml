@@ -92,7 +92,7 @@ handleNotifications party acs employees = do
                                                                    , (_,n) <- ownedNotifications]
   let createNotifications = filter (`notElem` (map snd notifications)) newNotifications
 
-  mapA_ dedupCreate newNotifications -- bcreateNotifications
+  mapA_ dedupCreate createNotifications
 
   -- Remove owned notifications after passing along to employees
   forA_ ownedNotifications $ \(cid,_) -> emitCommands [exerciseCmd cid Notification_Dismiss] [toAnyContractId cid]

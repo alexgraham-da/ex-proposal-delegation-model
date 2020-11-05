@@ -61,9 +61,9 @@ doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
   managerIdB <- companyB `submit` createCmd EmployeeManager with employee = b2, company = cB
 
   a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a1, fullName = "Employee A1", email = "alex.graham@digitalasset.com"
-  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a2, fullName = "Employee A2", email = "employeeA@companyA.com"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b1, fullName = "Employee B1", email = "dimitri.liakokos@digitalasset.com"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b2, fullName = "Employee B2", email = "employeeB@companyB.com"
+  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a2, fullName = "Employee A2", email = "alex.graham+symphonydev1@digitalasset.com"
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b1, fullName = "Employee B1", email = "dimitri.liakakos@digitalasset.com"
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b2, fullName = "Employee B2", email = "alex.graham+symphonydev2@digitalasset.com"
 
  -- add employeeA1 as a reviewer
   a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a1

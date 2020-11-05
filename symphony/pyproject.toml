@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "bot"
+version = "0.0.2"
+description = "Proposal Model Symphony Bot"
+authors = ["Digital Asset"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+dazl = "^7.0.2"
+aiohttp = "^3.6.2"
+multidict = "^4.7.6"
+sym-api-client-python = "^1.1.2"
+grpcio = ">=1.29.1"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+my-script = "bot:main"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

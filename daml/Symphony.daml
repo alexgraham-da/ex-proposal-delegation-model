@@ -1,0 +1,41 @@
+module Symphony where
+
+import DA.Optional
+
+import Model.Company
+import Model.Proposal
+
+template CompanySymphony
+  with
+    owner : Party
+  where
+    signatory owner
+    key owner : Party
+    maintainer key
+    controller owner can
+      nonconsuming CompanySymphony_MakeProposal : ContractId Proposal
+        with
+          employeeEmail : Text
+          proposedTo : Party
+          proposalText : Text
+        do
+          employeeContractId <- lookupByKey @Employee (employeeEmail, owner)
+          assertMsg "Employee does not exist in company" $ isSome employeeContractId
+          employeeParty <- party <$> fetch @Employee (fromSome employeeContractId)
+
+          proposalContract <- lookupByKey @EmployeeProposer (employeeParty, owner)
+          assertMsg "Employee must have the proposal role" $ isSome proposalContract
+          assertMsg "Cannot propose to own company" $ proposedTo /= owner
+
+          let proposal = Proposal with proposer = owner, proposal = proposalText, ..
+          create proposal
+
+template UserStream
+  with
+    integration : Party
+    username: Text
+    streamId : Text
+  where
+    signatory integration
+    key (integration, username) : (Party, Text)
+    maintainer key._1
