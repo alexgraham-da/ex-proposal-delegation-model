@@ -13,11 +13,11 @@ import dazl
 import logging
 import ast
 import json
-from model import SYMPHONY, COMPANY, PROPOSAL
-from symphony_integration import SymphonyIntegration
-from render import render_propose_form, render_review_form
-from utils import Utils
-from model import COMPANY, PROPOSAL
+from .model import SYMPHONY, COMPANY, PROPOSAL
+from .symphony_integration import SymphonyIntegration
+from .render import render_propose_form, render_review_form
+from .utils import Utils
+from .model import COMPANY, PROPOSAL
 
 class ElementAction:
     username: str
@@ -42,7 +42,7 @@ class ActionProcessor:
     async def process_im_action(self, action_contract):
         action = ElementAction(action_contract)
         logging.debug('action_processor/im_process')
-        # logging.debug(json.dumps(action, indent=4))
+
         id_split = action.form_id.split('::')
         form_id = id_split[0]
 
@@ -67,13 +67,11 @@ class ActionProcessor:
             try:
                 await self.dazl_client.submit_exercise_by_key(COMPANY.CompanySymphony, party, 'CompanySymphony_MakeProposal', args)
             except AioRpcError as err:
-                self.response_message = Utils.format_message('Command failed')
-                print(err.details())
+                self.response_message = Utils.format_message(f'Command failed: {err.details()}')
 
         self.symphony_int.send_message(action.stream_id, self.response_message)
 
     async def process_review_form(self, action, id_split):
-        # self.bot_client.get_message_client().send_msg(SymElementsParser().get_stream_id(action), self.action_processed_message)
         button_action = action.form_action
 
         cid = id_split[1]
@@ -86,11 +84,12 @@ class ActionProcessor:
 
         if button_action == 'accept_button':
             try : self.dazl_client.submit_exercise(proposal_cid, 'Proposal_Accept')
-            except Exception as x: print()
+            except Exception as x: print(x)
             self.response_message = Utils.format_message('Accepted!')
 
         elif button_action == 'reject_button':
-            self.dazl_client.submit_exercise(proposal_cid, 'Proposal_Reject')
+            try: self.dazl_client.submit_exercise(proposal_cid, 'Proposal_Reject')
+            except Exception as x : print(x)
             self.response_message = Utils.format_message('Rejected!')
 
         self.symphony_int.send_message(action.stream_id, self.response_message)

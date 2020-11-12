@@ -18,6 +18,8 @@ dependencies:
   - daml-prim
   - daml-stdlib
   - daml-script
+data-dependencies:
+  - dabl-integration-symphony-0.6.0.dar
 # trigger-dependencies-end
 sandbox-options:
   - --wall-clock-time

@@ -1,10 +1,10 @@
 import logging
 import ast
 import json
-from model import SYMPHONY, COMPANY, PROPOSAL
-from symphony_integration import SymphonyIntegration
-from render import render_propose_form, render_review_form
-from utils import Utils
+from .model import SYMPHONY, COMPANY, PROPOSAL
+from .symphony_integration import SymphonyIntegration
+from .render import render_propose_form, render_review_form
+from .utils import Utils
 
 class IMListener():
     def __init__(self, dazl_client, symphony_int: SymphonyIntegration):
@@ -27,9 +27,6 @@ class IMListener():
 
     async def process_im(self, msg):
         self.help_message = '/propose, /review, or /clear'
-        # dict(message = """
-        #                             <h3>Type '/elements' to render a form</h3>
-        #                                    """)
 
         commands = ast.literal_eval(msg['messageText'])# .split()
         stream_id = msg['symphonyStreamId']
@@ -54,7 +51,7 @@ class IMListener():
             else:
                 self.message_to_send = Utils.format_message('Done listing proposals.')
         elif commands[0] == '/clear':
-            self.message_to_send = Utils.format_message('<br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/>')
+            self.message_to_send = Utils.format_message('<br/><br/><br/><br/><br/><br/><br/>')
         else:
             self.message_to_send = self.help_message
 

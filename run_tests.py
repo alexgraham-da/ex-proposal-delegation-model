@@ -13,7 +13,7 @@ os.system("daml build")
 os.system("while ! nc -z localhost 6865; do sleep 1; done")
 
 print("Initializing...")
-setupTest = os.system(scriptCommand("initializeTests", "dabl/ledger-parties-test.json", "test_results.json"))
+setupTest = os.system(scriptCommand("initializeTests", "dabl/ledger-parties-local.json", "test_results.json"))
 if (setupTest != 0):
     print('Failed to initialize')
     sys.exit()
