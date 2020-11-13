@@ -14,6 +14,12 @@ def render_propose_form():
     print(html)
     return html
 
+def render_registration_form():
+    template = Template(register_form(), trim_blocks=True, lstrip_blocks=True)
+    html = template.render(form_data)
+    print(html)
+    return html
+
 def render_review_form(message, proposer, cid, tid):
     review_data = {
         "reviewData": {
@@ -41,11 +47,31 @@ def review_form():
 
 def propose_form():
     return """
-    <form id="proposal_form_id">
+    <form id="Symphony:SymphonyFormProposal">
         <h4>Propose to:</h4>
-        <text-field name="propose_to" required="true" minlength="5" maxlength="100" />
+        <text-field name="proposeTo" required="true" minlength="5" maxlength="100" />
         <h4>Proposal text:</h4>
-        <textarea name="proposal" placeholder="Proposal text here" required="true"></textarea>
+        <textarea name="proposalText" placeholder="Proposal text here" required="true"></textarea>
+        <button type="reset">Reset</button>
+        <button name="submit_button" type="action">Submit</button>
+    </form>
+"""
+
+def register_form():
+    return """
+    <form id="Symphony:SymphonyFormRegistration">
+        <h4>First Name</h4>
+        <text-field name="firstName" required="true" minlength="1" maxlength="100" />
+        <h4>Last Name</h4>
+        <text-field name="lastName" required="true" minlength="1" maxlength="100" />
+        <h4>Department</h4>
+        <select name="department">
+            <option value="Engineering">Engineering</option>
+            <option value="HumanResources">Human Resources</option>
+            <option value="Sales">Sales</option>
+        </select>
+        <h4>About me:</h4>
+        <textarea name="bio" placeholder="Write your bio here." required="true"></textarea>
         <button type="reset">Reset</button>
         <button name="submit_button" type="action">Submit</button>
     </form>

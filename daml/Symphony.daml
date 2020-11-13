@@ -39,3 +39,40 @@ template UserStream
     signatory integration
     key (integration, username) : (Party, Text)
     maintainer key._1
+
+template SymphonyFormProposal
+  with
+    -- boilerplate
+    integrationParty : Party
+    symphonyUser : Text
+    symphonyStreamId : Text
+    formId : Text
+    formAction : Text
+
+    -- actual form data
+    proposeTo : Party
+    proposalText : Text
+  where
+    signatory integrationParty
+
+data Department = Engineering
+                | HumanResources
+                | Sales
+  deriving (Show,Eq)
+
+template SymphonyFormRegistration
+  with
+    -- boilerplate
+    integrationParty : Party
+    symphonyUser : Text
+    symphonyStreamId : Text
+    formId : Text
+    formAction : Text
+
+    -- actual form data
+    firstName : Text
+    lastName : Text
+    department : Department
+    bio : Text
+  where
+    signatory integrationParty

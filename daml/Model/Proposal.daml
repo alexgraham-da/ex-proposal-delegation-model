@@ -2,8 +2,6 @@ module Model.Proposal where
 
 import Model.Notification
 
-import SymphonyIntegration.InboundDirectMessage
-
 template Proposal
   with
     proposer : Party

@@ -3,7 +3,7 @@ import ast
 import json
 from .model import SYMPHONY, COMPANY, PROPOSAL
 from .symphony_integration import SymphonyIntegration
-from .render import render_propose_form, render_review_form
+from .render import render_propose_form, render_review_form, render_registration_form
 from .utils import Utils
 
 class IMListener():
@@ -35,6 +35,8 @@ class IMListener():
 
         if commands[0] == '/propose':
             self.message_to_send = render_propose_form()
+        elif commands[0] == '/register':
+            self.message_to_send = render_registration_form()
         elif commands[0] == '/review':
             (_, employee_contract) = await self.dazl_client.find_one(COMPANY.Employee, dict(email = username))
             proposals = self.dazl_client.find_active(PROPOSAL.DelegatedProposal, dict(employee = employee_contract['party']))
