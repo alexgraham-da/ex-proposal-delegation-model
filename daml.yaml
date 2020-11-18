@@ -1,4 +1,4 @@
-sdk-version: 1.6.0
+sdk-version: 1.7.0
 name: proposal-model
 source: daml
 init-script: Setup:setup
@@ -12,14 +12,12 @@ parties:
   - EmployeeB2
   - CompanyATest
   - CompanyBTest
-version: 0.0.1
+version: 0.0.2
 # trigger-dependencies-begin
 dependencies:
   - daml-prim
   - daml-stdlib
   - daml-script
-data-dependencies:
-  - dabl-integration-symphony-0.6.0.dar
 # trigger-dependencies-end
 sandbox-options:
   - --wall-clock-time

@@ -26,7 +26,7 @@ $(trigger_build_log): |$(state_dir)
 	cd triggers && daml build > ../$(trigger_build_log)
 
 $(sandbox_pid): |$(daml_build_log)
-	daml start > $(sandbox_log) & echo "$$!" > $(sandbox_pid)
+	daml start --sandbox-option dabl-integration-symphony-0.2.0.dar > $(sandbox_log) & echo "$$!" > $(sandbox_pid)
 	# daml sandbox .daml/dist/proposal-model-0.0.1.dar > $(sandbox_log) & echo "$$!" > $(sandbox_pid)
 
 start_daml_server: $(sandbox_pid)
@@ -74,7 +74,7 @@ build:
 	daml build && cd triggers && daml build
 
 run_daml_script: build
-	daml script --participant-config dabl/participants.json --json-api --dar .daml/dist/proposal-model-0.0.1.dar --script-name Setup:initialize --input-file dabl/ledger-parties.json
+	daml script --participant-config dabl/participants.json --json-api --dar .daml/dist/proposal-model-0.0.2.dar --script-name Setup:initialize --input-file dabl/ledger-parties.json
 
 run_daml_script_local: build
-	daml script --dar .daml/dist/proposal-model-0.0.1.dar --script-name Setup:initialize --ledger-host localhost --ledger-port 6865 --input-file dabl/ledger-parties-local.json
+	daml script --dar .daml/dist/proposal-model-0.0.2.dar --script-name Setup:initialize --ledger-host localhost --ledger-port 6865 --input-file dabl/ledger-parties-local.json
