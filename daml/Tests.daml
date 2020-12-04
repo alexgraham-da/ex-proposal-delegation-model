@@ -41,9 +41,9 @@ findOrCreate party contract = do
 reinitialize : LedgerParties -> Script TestContracts
 reinitialize (LedgerParties public companyA companyB a1 a2 b1 b2) = do
   cA         <- companyA `findOrCreate` Company with owner = companyA, name = "Company A", observers = [public]
-  caInternal <- companyA `findOrCreate` CompanyInternal with company = companyA, employees = fromList [a2], management = [a1]
+  caInternal <- companyA `findOrCreate` CompanyInternal with company = companyA, employees = fromList [], management = []
   cB         <- companyB `findOrCreate` Company with owner = companyB, name = "Company B", observers = [public]
-  cbInternal <- companyB `findOrCreate` CompanyInternal with company = companyB, employees = fromList [b2], management = [b1]
+  cbInternal <- companyB `findOrCreate` CompanyInternal with company = companyB, employees = fromList [], management = []
 
   return $ TestContracts cA caInternal cB cbInternal
 
@@ -59,31 +59,36 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   caSymphonyId <- companyA `findOrCreate` CompanySymphony with owner = companyA
   cbSymphonyId <- companyB `findOrCreate` CompanySymphony with owner = companyB
 
-  -- add employeeA2 as a manager
-  (managerIdA, _) <- companyA `findOrCreate` EmployeeManager with employee = a2, company = companyA
+  companyA `submit` exerciseCmd caInternalId CompanyInternal_AddEmployee with
+        employee = a1, fullName = "Employee A1", email = "employeeA1@companya.com", manager = True
 
-  -- add employeeB2 as a manager
-  (managerIdB, _) <- companyB `findOrCreate` EmployeeManager with employee = b2, company = companyB
+  companyB `submit` exerciseCmd cbInternalId CompanyInternal_AddEmployee with
+        employee = b1, fullName = "Employee B1", email = "employeeB1@companyB.com", manager = True
+
+  (Some (managerIdA,_)) <- queryContractKey @EmployeeManager a1 (a1, companyA)
+  (Some (managerIdB,_)) <- queryContractKey @EmployeeManager b1 (b1, companyB)
 
   -- add employees to company
-  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a1, fullName = "Employee A1", email = "alex.graham@digitalasset.com"
-  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a2, fullName = "Employee A2", email = "employeeA@companyA.com"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b1, fullName = "Employee B1", email = "dimitri.liakakos@digitalasset.com"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b2, fullName = "Employee B2", email = "employeeB@companyB.com"
+  a1 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with
+      newEmployee = a2, fullName = "Employee A2", email = "employeeA2@companya.com"
+
+  b1 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with
+      newEmployee = b2, fullName = "Employee B2", email = "employeeB@companyB.com"
 
  -- add employeeA1 as a reviewer
-  a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a1
+  a2Reviewer <- a1 `submit` exerciseByKeyCmd @EmployeeManager (a1, companyA) EmployeeManager_AddReviewer with
+      newReviewer = a2
 
   -- add employeeB1 as a submitter
-  b1Proposer <- b2 `submit` exerciseCmd managerIdB EmployeeManager_AddProposer with newProposer = b1
+  b2Proposer <- b1 `submit` exerciseCmd managerIdB EmployeeManager_AddProposer with newProposer = b2
 
-  debug "Employee B1 making proposal..."
-  proposalId <- b1 `submit` exerciseCmd b1Proposer EmployeeProposer_MakeProposal with
-      proposedTo = companyA, proposalText = "B1 proposing to Company A"
+  debug "Employee B2 making proposal..."
+  proposalId <- b2 `submit` exerciseCmd b2Proposer EmployeeProposer_MakeProposal with
+      proposedTo = companyA, proposalText = "B2 proposing to Company A"
 
-  debug "Employee B2 changing name of company..."
+  debug "Employee B1 changing name of company..."
   -- change name of Company B
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_ChangeCompanyName with newName = "New Company B"
+  b1 `submit` exerciseCmd managerIdB EmployeeManager_ChangeCompanyName with newName = "New Company B"
 
   results lp proposalId
 
@@ -99,16 +104,16 @@ testStepTwo (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) pro
   proposal <- fromSome <$> queryContractId companyA proposalId
 
   -- EmployeeA2 is not a reviewer
-  assertMsg "Employee A2 is not a reviewer, so should not have a proposal contract"
-    =<< isNone <$> queryDelegatedProposal companyA proposal a2
+  assertMsg "Employee A1 is not a reviewer, so should not have a proposal contract"
+    =<< isNone <$> queryDelegatedProposal companyA proposal a1
 
   -- EmployeeA1 should have a delegated proposal
-  someDelegatedProposal1 <- queryDelegatedProposal companyA proposal a1
-  assertMsg "delegated proposal not found for employee A1" $ isSome someDelegatedProposal1
+  someDelegatedProposal1 <- queryDelegatedProposal companyA proposal a2
+  assertMsg "delegated proposal not found for employee A2" $ isSome someDelegatedProposal1
 
-  debug "Employee A1 accepting proposal..."
+  debug "Employee A2 accepting proposal..."
   let (dpId,_) = fromSome someDelegatedProposal1
-  a1 `submit` exerciseCmd dpId DelegatedProposal_Accept
+  a2 `submit` exerciseCmd dpId DelegatedProposal_Accept
 
   results lp proposal
 
@@ -132,8 +137,8 @@ testStepThree (Results lp@(LedgerParties public companyA companyB a1 a2 b1 b2) p
   assertMsg "agreement not found" $ isSome someAgreement
 
   -- Check to see if Notifications exist.
-  let notification = Notification with sender = companyB, receiver = b1, message = ("The proposal: '" <> proposal <> "' was accepted.")
-  notifications <- query @Notification b1
+  let notification = Notification with sender = companyB, receiver = b2, message = ("The proposal: '" <> proposal <> "' was accepted.")
+  notifications <- query @Notification b2
   assertMsg "employees of company b must have been notified" $ not $ null notifications
 
   -- Check to see if internal agreements exist

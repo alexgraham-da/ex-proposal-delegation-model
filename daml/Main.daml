@@ -1,71 +1,73 @@
 
 module Main where
 
-import DA.Next.Set
+-- TODO: rewrite this entirely as a script
 
-import Model.Company
-import Model.Proposal
+-- import DA.Next.Set
+--
+-- import Model.Company
+-- import Model.Proposal
 
-test = scenario do
-  companyA <- getParty "Company A"
-  companyB <- getParty "Company B"
-  a1 <- getParty "A employee 1"
-  a2 <- getParty "A employee 2"
-  b1 <- getParty "B employee 1"
-  b2 <- getParty "B employee 2"
-
-  let cA = Company with owner = companyA, name = "Company A", observers = []
-  let caInternal = CompanyInternal with company = companyA, employees = fromList [], management = []
-  (caId, caInternalId) <- companyA `submit` do
-      caId <- create cA
-      caInternalId1 <- create caInternal
-      caInternalId2 <- exercise caInternalId1 CompanyInternal_AddEmployee with employee = a1, manager = False
-      caInternalId3 <- exercise caInternalId2 CompanyInternal_AddEmployee with employee = a2, manager = True
-      return (caId, caInternalId3)
-
-  let cB = Company with owner = companyB, name = "Company B", observers = []
-  let cbInternal = CompanyInternal with company = companyB, employees = fromList [], management = []
-  (cbId, cbInternalId) <- companyB `submit` do
-      cbId <- create cB
-      cbInternalId1 <- create cbInternal
-      cbInternalId2 <- exercise cbInternalId1 CompanyInternal_AddEmployee with employee = b1, manager = False
-      cbInternalId3 <- exercise cbInternalId2 CompanyInternal_AddEmployee with employee = b2, manager = True
-      return (cbId, cbInternalId3)
-
-  -- add employeeA2 as a manager
-  managerIdA <- companyA `submit` create EmployeeManager with employee = a2, company = companyA
-
-  -- add employeeB2 as a manager
-  managerIdB <- companyB `submit` create EmployeeManager with employee = b2, company = companyB
-
-  -- add employeeB1 as a submitter
-  proposerId1 <- b2 `submit` exercise managerIdB EmployeeManager_AddProposer with newProposer = b1
-
- -- add employeeA1 as a reviewer
-  reviewerId1 <- a2 `submit` exercise managerIdA EmployeeManager_AddReviewer with newReviewer = a1
-
-  -- Company B and employees must not be able to see Company A internals
-  submitMustFail companyB $ visibleByKey @CompanyInternal (key caInternal)
-  submitMustFail b1 $ fetchByKey @CompanyInternal (key caInternal)
-
-  -- a1 is not in management
-  a1 `submitMustFail` do
-      exercise caInternalId CompanyInternal_UpdateCompanyName with employee = a1, newName = "Company Eh2"
-
-  -- Employee B1 should be able to propose
-  proposalId <- b1 `submit` exercise proposerId1 EmployeeProposer_MakeProposal with
-      proposedTo = companyA, proposalText = "B1 proposing to company A"
-
-  -- Run by trigger:
-  dpId <- companyA `submit` do
-      proposal <- fetch proposalId
-      create DelegatedProposal with proposal, company = companyA, employee = a1
-  -- end run by trigger
-
-  delegatedProposalActionId <- submit a1 $ exercise dpId DelegatedProposal_Accept
-
-  -- Run by trigger:
-  companyA `submit` exercise delegatedProposalActionId DelegatedProposalAction_Resolve
-  --
-  return ()
-  --
+-- test = scenario do
+--   companyA <- getParty "Company A"
+--   companyB <- getParty "Company B"
+--   a1 <- getParty "A employee 1"
+--   a2 <- getParty "A employee 2"
+--   b1 <- getParty "B employee 1"
+--   b2 <- getParty "B employee 2"
+--
+--   let cA = Company with owner = companyA, name = "Company A", observers = []
+--   let caInternal = CompanyInternal with company = companyA, employees = fromList [], management = []
+--   (caId, caInternalId) <- companyA `submit` do
+--       caId <- create cA
+--       caInternalId1 <- create caInternal
+--       caInternalId2 <- exercise caInternalId1 CompanyInternal_AddEmployee with employee = a1, manager = False
+--       caInternalId3 <- exercise caInternalId2 CompanyInternal_AddEmployee with employee = a2, manager = True
+--       return (caId, caInternalId3)
+--
+--   let cB = Company with owner = companyB, name = "Company B", observers = []
+--   let cbInternal = CompanyInternal with company = companyB, employees = fromList [], management = []
+--   (cbId, cbInternalId) <- companyB `submit` do
+--       cbId <- create cB
+--       cbInternalId1 <- create cbInternal
+--       cbInternalId2 <- exercise cbInternalId1 CompanyInternal_AddEmployee with employee = b1, manager = False
+--       cbInternalId3 <- exercise cbInternalId2 CompanyInternal_AddEmployee with employee = b2, manager = True
+--       return (cbId, cbInternalId3)
+--
+--   -- add employeeA2 as a manager
+--   managerIdA <- companyA `submit` create EmployeeManager with employee = a2, company = companyA
+--
+--   -- add employeeB2 as a manager
+--   managerIdB <- companyB `submit` create EmployeeManager with employee = b2, company = companyB
+--
+--   -- add employeeB1 as a submitter
+--   proposerId1 <- b2 `submit` exercise managerIdB EmployeeManager_AddProposer with newProposer = b1
+--
+--  -- add employeeA1 as a reviewer
+--   reviewerId1 <- a2 `submit` exercise managerIdA EmployeeManager_AddReviewer with newReviewer = a1
+--
+--   -- Company B and employees must not be able to see Company A internals
+--   submitMustFail companyB $ visibleByKey @CompanyInternal (key caInternal)
+--   submitMustFail b1 $ fetchByKey @CompanyInternal (key caInternal)
+--
+--   -- a1 is not in management
+--   a1 `submitMustFail` do
+--       exercise caInternalId CompanyInternal_UpdateCompanyName with employee = a1, newName = "Company Eh2"
+--
+--   -- Employee B1 should be able to propose
+--   proposalId <- b1 `submit` exercise proposerId1 EmployeeProposer_MakeProposal with
+--       proposedTo = companyA, proposalText = "B1 proposing to company A"
+--
+--   -- Run by trigger:
+--   dpId <- companyA `submit` do
+--       proposal <- fetch proposalId
+--       create DelegatedProposal with proposal, company = companyA, employee = a1
+--   -- end run by trigger
+--
+--   delegatedProposalActionId <- submit a1 $ exercise dpId DelegatedProposal_Accept
+--
+--   -- Run by trigger:
+--   companyA `submit` exercise delegatedProposalActionId DelegatedProposalAction_Resolve
+--   --
+--   return ()
+--   --

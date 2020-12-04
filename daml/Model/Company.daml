@@ -44,11 +44,16 @@ template CompanyInternal
       CompanyInternal_AddEmployee : ContractId CompanyInternal
         with
           employee : Party
+          fullName : Text
+          email : Text
           manager : Bool
         do
-          let management' = if manager
-                            then employee :: management
-                            else management
+          management' <- if   manager
+                         then do
+                              create EmployeeManager with ..
+                              return (employee :: management)
+                         else return management
+          create Employee with party = employee, ..
           create this with employees = insert employee employees, management = management'
 
     nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
