@@ -5,7 +5,7 @@ import sys
 import os
 
 def scriptCommand(scriptName, inputFile, outputFile):
-    return f'daml script --dar .daml/dist/proposal-model-0.0.1.dar --script-name Tests:{scriptName} --ledger-host localhost --ledger-port 6865 --input-file {inputFile} --output-file {outputFile}'
+    return f'daml script --dar .daml/dist/proposal-model-0.0.2.dar --script-name Tests:{scriptName} --ledger-host localhost --ledger-port 6865 --input-file {inputFile} --output-file {outputFile}'
 
 tests = ["testStepTwo", "testStepThree", "testStepFour"]
 

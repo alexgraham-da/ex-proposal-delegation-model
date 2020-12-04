@@ -32,15 +32,15 @@ template Company
 
 template CompanyInternal
   with
-    company : Company
+    company : Party
     employees : Set Party
     management : [Party]
   where
-    signatory company.owner
+    signatory company
     observer employees
-    key company.owner : Party
+    key company : Party
     maintainer key
-    controller company.owner can
+    controller company can
       CompanyInternal_AddEmployee : ContractId CompanyInternal
         with
           employee : Party
@@ -58,17 +58,17 @@ template CompanyInternal
       controller employee
       do
         assertMsg "Employee must be in management" $ elem employee management
-        exerciseByKey @Company (key company) Company_UpdateName with newName
+        exerciseByKey @Company company Company_UpdateName with newName
 
 
 template EmployeeManager
   with
     employee : Party
-    company : Company
+    company : Party
   where
-    signatory (signatory company)
+    signatory company
     observer employee
-    key (employee, company.owner) : (Party, Party)
+    key (employee, company) : (Party, Party)
     maintainer key._2
     nonconsuming choice EmployeeManager_AddEmployee : ContractId CompanyInternal
       with
@@ -77,8 +77,8 @@ template EmployeeManager
         email : Text
       controller employee
       do
-        (companyInternalId, companyInternal) <- fetchByKey @CompanyInternal company.owner
-        create Employee with party = newEmployee, company = company.owner, ..
+        (companyInternalId, companyInternal) <- fetchByKey @CompanyInternal company
+        create Employee with party = newEmployee, ..
         archive companyInternalId
         create companyInternal with employees = insert newEmployee companyInternal.employees
 
@@ -87,14 +87,14 @@ template EmployeeManager
         newProposer : Party
       controller employee
       do
-        create EmployeeProposer with employee = newProposer, company = company.owner
+        create EmployeeProposer with employee = newProposer, ..
 
     nonconsuming choice EmployeeManager_AddReviewer : ContractId EmployeeReviewer
       with
         newReviewer : Party
       controller employee
       do
-        create EmployeeReviewer with employee = newReviewer, company = company.owner
+        create EmployeeReviewer with employee = newReviewer, ..
 
     nonconsuming choice EmployeeManager_ChangeCompanyName : ContractId CompanyActionRequest
       with
@@ -154,12 +154,12 @@ data CompanyAction = UpdateName Text deriving (Eq, Show)
 template CompanyActionRequest
   with
     employee : Party
-    company : Company
+    company : Party
     action : CompanyAction
   where
-    signatory company.owner
-    controller company.owner can
+    signatory company
+    controller company can
       CompanyActionRequest_Resolve : ContractId Company
         do
           case action of
-            (UpdateName newName) -> exerciseByKey @Company (key company) Company_UpdateName with ..
+            (UpdateName newName) -> exerciseByKey @Company company Company_UpdateName with ..

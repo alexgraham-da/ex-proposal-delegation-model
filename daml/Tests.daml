@@ -41,9 +41,9 @@ findOrCreate party contract = do
 reinitialize : LedgerParties -> Script TestContracts
 reinitialize (LedgerParties public companyA companyB a1 a2 b1 b2) = do
   cA         <- companyA `findOrCreate` Company with owner = companyA, name = "Company A", observers = [public]
-  caInternal <- companyA `findOrCreate` CompanyInternal with company = snd cA, employees = fromList [a2], management = [a1]
+  caInternal <- companyA `findOrCreate` CompanyInternal with company = companyA, employees = fromList [a2], management = [a1]
   cB         <- companyB `findOrCreate` Company with owner = companyB, name = "Company B", observers = [public]
-  cbInternal <- companyB `findOrCreate` CompanyInternal with company = snd cB, employees = fromList [b2], management = [b1]
+  cbInternal <- companyB `findOrCreate` CompanyInternal with company = companyB, employees = fromList [b2], management = [b1]
 
   return $ TestContracts cA caInternal cB cbInternal
 
@@ -60,10 +60,10 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   cbSymphonyId <- companyB `findOrCreate` CompanySymphony with owner = companyB
 
   -- add employeeA2 as a manager
-  (managerIdA, _) <- companyA `findOrCreate` EmployeeManager with employee = a2, company = cA
+  (managerIdA, _) <- companyA `findOrCreate` EmployeeManager with employee = a2, company = companyA
 
   -- add employeeB2 as a manager
-  (managerIdB, _) <- companyB `findOrCreate` EmployeeManager with employee = b2, company = cB
+  (managerIdB, _) <- companyB `findOrCreate` EmployeeManager with employee = b2, company = companyB
 
   -- add employees to company
   a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a1, fullName = "Employee A1", email = "alex.graham@digitalasset.com"
@@ -73,9 +73,6 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
 
  -- add employeeA1 as a reviewer
   a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a1
-
- -- add employeeA1 as a reviewer
-  a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a2
 
   -- add employeeB1 as a submitter
   b1Proposer <- b2 `submit` exerciseCmd managerIdB EmployeeManager_AddProposer with newProposer = b1

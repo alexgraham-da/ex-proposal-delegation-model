@@ -15,7 +15,7 @@ test = scenario do
   b2 <- getParty "B employee 2"
 
   let cA = Company with owner = companyA, name = "Company A", observers = []
-  let caInternal = CompanyInternal with company = cA, employees = fromList [], management = []
+  let caInternal = CompanyInternal with company = companyA, employees = fromList [], management = []
   (caId, caInternalId) <- companyA `submit` do
       caId <- create cA
       caInternalId1 <- create caInternal
@@ -24,7 +24,7 @@ test = scenario do
       return (caId, caInternalId3)
 
   let cB = Company with owner = companyB, name = "Company B", observers = []
-  let cbInternal = CompanyInternal with company = cB, employees = fromList [], management = []
+  let cbInternal = CompanyInternal with company = companyB, employees = fromList [], management = []
   (cbId, cbInternalId) <- companyB `submit` do
       cbId <- create cB
       cbInternalId1 <- create cbInternal
@@ -33,10 +33,10 @@ test = scenario do
       return (cbId, cbInternalId3)
 
   -- add employeeA2 as a manager
-  managerIdA <- companyA `submit` create EmployeeManager with employee = a2, company = cA
+  managerIdA <- companyA `submit` create EmployeeManager with employee = a2, company = companyA
 
   -- add employeeB2 as a manager
-  managerIdB <- companyB `submit` create EmployeeManager with employee = b2, company = cB
+  managerIdB <- companyB `submit` create EmployeeManager with employee = b2, company = companyB
 
   -- add employeeB1 as a submitter
   proposerId1 <- b2 `submit` exercise managerIdB EmployeeManager_AddProposer with newProposer = b1

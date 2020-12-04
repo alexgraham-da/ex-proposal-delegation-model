@@ -31,7 +31,7 @@ handleProposalsRule : Party -> ACS -> Time -> Map CommandId [Command] -> () -> T
 handleProposalsRule party acs _time commandsInFlight () = mapA_ go ownedCompanies
   where
     internalCompanies = getContracts @CompanyInternal acs
-    ownedCompanies    = filter (\(_, c) -> c.company.owner == party) internalCompanies
+    ownedCompanies    = filter (\(_, c) -> c.company == party) internalCompanies
 
     go : ContractPair CompanyInternal -> TriggerA ()
     go = handleSingleCompany party acs _time commandsInFlight ()
