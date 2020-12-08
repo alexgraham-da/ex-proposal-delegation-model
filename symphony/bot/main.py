@@ -14,6 +14,7 @@ from .action_processor import ActionProcessor
 from .symphony_integration import SymphonyIntegration
 from .utils import Utils
 from .model import (
+    COMPANY,
     SYMPHONY,
     PROPOSAL,
     NOTIFICATION
@@ -49,6 +50,12 @@ def setup_client(network, party) -> AIOPartyClient:
     @client.ledger_ready()
     async def say_hello(event):
         logging.info("Connected to proposal model!")
+        res = client.find_active(COMPANY.CompanySymphony)
+        logging.info(f"Found {len(res)} {COMPANY.CompanySymphony} contracts")
+
+        if not res:
+            logging.info(f"Creating CompanySymphony contract for {party}...")
+            return client.submit_create(COMPANY.CompanySymphony, {'owner': party})
 
     @client.ledger_created(SYMPHONY.InboundDirectMessage)
     async def handle_inbound_message(event):

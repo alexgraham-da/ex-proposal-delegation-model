@@ -2,6 +2,7 @@ module Model.Company where
 
 import Model.Proposal
 
+import DA.Action
 import DA.Next.Set
 
 template Company
@@ -46,14 +47,18 @@ template CompanyInternal
           employee : Party
           fullName : Text
           email : Text
-          manager : Bool
+          isManager : Bool
+          isProposer : Bool
+          isReviewer : Bool
         do
-          management' <- if   manager
+          management' <- if   isManager
                          then do
                               create EmployeeManager with ..
                               return (employee :: management)
                          else return management
           create Employee with party = employee, ..
+          when isProposer $ void $ create EmployeeProposer with company, employee
+          when isReviewer $ void $ create EmployeeReviewer with company, employee
           create this with employees = insert employee employees, management = management'
 
     nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
@@ -80,12 +85,12 @@ template EmployeeManager
         newEmployee : Party
         fullName : Text
         email : Text
+        isManager : Bool
+        isProposer : Bool
+        isReviewer : Bool
       controller employee
       do
-        (companyInternalId, companyInternal) <- fetchByKey @CompanyInternal company
-        create Employee with party = newEmployee, ..
-        archive companyInternalId
-        create companyInternal with employees = insert newEmployee companyInternal.employees
+        exerciseByKey @CompanyInternal company CompanyInternal_AddEmployee with ..
 
     nonconsuming choice EmployeeManager_AddProposer : ContractId EmployeeProposer
       with
