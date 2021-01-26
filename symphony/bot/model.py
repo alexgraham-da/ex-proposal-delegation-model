@@ -7,6 +7,7 @@ class SYMPHONY:
 
 class COMPANY:
     CompanySymphony = 'Symphony:CompanySymphony'
+    Company = 'Model.Company:Company'
     Employee = 'Model.Company:Employee'
 
 class PROPOSAL:

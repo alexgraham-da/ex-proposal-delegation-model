@@ -39,10 +39,10 @@ setup = allocateParties >>= doSetup
 doSetup : LedgerParties -> Script ()
 doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
 
-  let cA = Company with owner = companyA, name = "Company A", observers = [public]
+  let cA = Company with owner = companyA, name = "Company A", observers = [public, companyB]
   let cAInternal = CompanyInternal with company = companyA, employees = fromList [a2], management = []
 
-  let cB = Company with owner = companyB, name = "Company B", observers = [public]
+  let cB = Company with owner = companyB, name = "Company B", observers = [public, companyA]
   let cbInternal = CompanyInternal with company = companyB, employees = fromList [b2], management = []
 
   -- create companies
@@ -60,10 +60,13 @@ doSetup (LedgerParties public companyA companyB a1 a2 b1 b2) = do
   -- add employeeB2 as a manager
   managerIdB <- companyB `submit` createCmd EmployeeManager with employee = b2, company = companyB
 
-  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a1, fullName = "Employee A1", email = "alex.graham@digitalasset.com"
-  a2 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with newEmployee = a2, fullName = "Employee A2", email = "alex.graham+symphonydev1@digitalasset.com"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b1, fullName = "Employee B1", email = "dimitri.liakakos@digitalasset.com"
-  b2 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with newEmployee = b2, fullName = "Employee B2", email = "alex.graham+symphonydev2@digitalasset.com"
+  let isManager = False
+      isProposer = False
+      isReviewer = False
+  a2 `submit` exerciseCmd managerIdA EmployeeManager_OnboardEmployee with newEmployee = a1, fullName = "Employee A1", email = "alex.graham@digitalasset.com", ..
+  a2 `submit` exerciseCmd managerIdA EmployeeManager_OnboardEmployee with newEmployee = a2, fullName = "Employee A2", email = "alex.graham+symphonydev1@digitalasset.com", ..
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_OnboardEmployee with newEmployee = b1, fullName = "Employee B1", email = "dimitri.liakakos@digitalasset.com", ..
+  b2 `submit` exerciseCmd managerIdB EmployeeManager_OnboardEmployee with newEmployee = b2, fullName = "Employee B2", email = "alex.graham+symphonydev2@digitalasset.com", ..
 
  -- add employeeA1 as a reviewer
   a1Reviewer <- a2 `submit` exerciseCmd managerIdA EmployeeManager_AddReviewer with newReviewer = a1

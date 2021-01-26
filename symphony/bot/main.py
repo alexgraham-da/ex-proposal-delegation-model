@@ -56,6 +56,8 @@ def setup_client(network, party) -> AIOPartyClient:
         if not res:
             logging.info(f"Creating CompanySymphony contract for {party}...")
             return client.submit_create(COMPANY.CompanySymphony, {'owner': party})
+        else:
+            return []
 
     @client.ledger_created(SYMPHONY.InboundDirectMessage)
     async def handle_inbound_message(event):
@@ -77,6 +79,7 @@ def setup_client(network, party) -> AIOPartyClient:
             message = Utils.format_message(f'<b>Notification received:</b> {notification_message}')
             symphony_int.send_message(user_stream['streamId'], message)
         await symphony_int.run_for_employee(receiver, go)
+        return [exercise(event.cid, 'Archive', {})]
 
     @client.ledger_created(PROPOSAL.DelegatedProposal)
     async def handle_delegated_proposal(event):

@@ -34,7 +34,11 @@ class IMListener():
         logging.info(f"message is {commands}, user is {username}")
 
         if commands[0] == '/propose':
-            self.message_to_send = render_propose_form()
+            company_contracts = self.dazl_client.find_active(COMPANY.Company)
+            companies = [{"party_id": cdata['owner'], "name": cdata['name']}
+                for (_, cdata) in company_contracts.items()
+                if cdata['owner'] != self.dazl_client.party]
+            self.message_to_send = render_propose_form(companies)
         elif commands[0] == '/review':
             (_, employee_contract) = await self.dazl_client.find_one(COMPANY.Employee, dict(email = username))
             proposals = self.dazl_client.find_active(PROPOSAL.DelegatedProposal, dict(employee = employee_contract['party']))

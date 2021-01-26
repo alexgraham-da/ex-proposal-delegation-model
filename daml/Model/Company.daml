@@ -48,8 +48,6 @@ template CompanyInternal
           fullName : Text
           email : Text
           isManager : Bool
-          isProposer : Bool
-          isReviewer : Bool
         do
           management' <- if   isManager
                          then do
@@ -57,8 +55,6 @@ template CompanyInternal
                               return (employee :: management)
                          else return management
           create Employee with party = employee, ..
-          when isProposer $ void $ create EmployeeProposer with company, employee
-          when isReviewer $ void $ create EmployeeReviewer with company, employee
           create this with employees = insert employee employees, management = management'
 
     nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company
@@ -80,7 +76,7 @@ template EmployeeManager
     observer employee
     key (employee, company) : (Party, Party)
     maintainer key._2
-    nonconsuming choice EmployeeManager_AddEmployee : ContractId CompanyInternal
+    nonconsuming choice EmployeeManager_OnboardEmployee : ContractId CompanyInternal
       with
         newEmployee : Party
         fullName : Text
@@ -90,7 +86,9 @@ template EmployeeManager
         isReviewer : Bool
       controller employee
       do
-        exerciseByKey @CompanyInternal company CompanyInternal_AddEmployee with ..
+        when isProposer $ void $ create EmployeeProposer with company, employee = newEmployee
+        when isReviewer $ void $ create EmployeeReviewer with company, employee = newEmployee
+        exerciseByKey @CompanyInternal company CompanyInternal_AddEmployee with employee = newEmployee, ..
 
     nonconsuming choice EmployeeManager_AddProposer : ContractId EmployeeProposer
       with

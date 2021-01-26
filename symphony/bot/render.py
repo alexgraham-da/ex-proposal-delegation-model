@@ -4,13 +4,14 @@ from jinja2 import Template
 form_data = {
     "simpleForm": {
         "title": "Form-Title",
-        "countries": ["america", "australia", "here"]
+        "countries": [{"name": "australia", "value": "australia-value"},
+            {"name": "america", "value": "value"}]
     }
 }
 
-def render_propose_form():
+def render_propose_form(companies):
     template = Template(propose_form(), trim_blocks=True, lstrip_blocks=True)
-    html = template.render(form_data)
+    html = template.render({"companies": companies})
     print(html)
     return html
 
@@ -43,7 +44,11 @@ def propose_form():
     return """
     <form id="proposal_form_id">
         <h4>Propose to:</h4>
-        <text-field name="propose_to" required="true" minlength="5" maxlength="100" />
+        <select name="propose_to" data-placeholder="Select Company...">
+            {% for company in companies %}
+                <option value="{{ company.party_id }}">{{ company.name }}</option>
+            {% endfor %}
+        </select>
         <h4>Proposal text:</h4>
         <textarea name="proposal" placeholder="Proposal text here" required="true"></textarea>
         <button type="reset">Reset</button>

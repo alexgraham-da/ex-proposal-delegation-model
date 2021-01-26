@@ -3,15 +3,19 @@
 
 module ProposalTrigger where
 
+import DA.Action
 import DA.Next.Map (Map)
 import qualified DA.Next.Set as Set
-import DA.Foldable hiding (elem)
+import DA.Foldable hiding (elem, null)
 
 import Daml.Trigger
 
 import Model.Company
 import Model.Proposal
 import Model.Notification
+
+showIfCreating : (Show a) => [a] -> TriggerA ()
+showIfCreating xs = unless (null xs) $ debug $ "Creating contracts: " <> show xs
 
 -- TRIGGER_BEGIN
 handleProposals : Trigger ()
@@ -70,11 +74,19 @@ handleDelegation party acs ownedCompany employees = do
                                                            , (_,p) <- ownedProposals]
   let createDelegatedProposals = filter (`notElem` (map snd delegatedProposals)) newDelegatedProposals
 
-  mapA_ dedupCreate newDelegatedProposals -- createDelegatedProposals
+  showIfCreating createDelegatedProposals
+  mapA_ dedupCreate createDelegatedProposals
+
+  let createProposalNotifications = [ Notification party e "You have received a new proposal to review."
+                                    | (DelegatedProposal _ _ e) <- createDelegatedProposals ]
+
+  showIfCreating createProposalNotifications
+  mapA_ dedupCreate createProposalNotifications
 
   -- Resolve proposal actions
   let delegatedProposalActions = getContracts @DelegatedProposalAction acs
-  forA_ delegatedProposalActions $ \(cid,_) -> emitCommands [exerciseCmd cid DelegatedProposalAction_Resolve] [toAnyContractId cid]
+  forA_ delegatedProposalActions $ \(cid,dpa) -> emitCommands [exerciseCmd cid DelegatedProposalAction_Resolve] [toAnyContractId cid]
+                                              >> debug ("Resolving proposal action : " <> show dpa)
 
   -- Clean up old delegated proposals
   let archiveMissingProposals = dedup $ map fst
@@ -84,6 +96,8 @@ handleDelegation party acs ownedCompany employees = do
 -- |Passes on notifications to all employees
 handleNotifications : Party -> ACS -> [Party] -> TriggerA ()
 handleNotifications party acs employees = do
+  debug "Handling notifications..."
+
   -- Pass on notifications
   let notifications = getContracts @Notification acs
   let ownedNotifications = filter (\(_, n) -> n.receiver == party) notifications
@@ -92,6 +106,7 @@ handleNotifications party acs employees = do
                                                                    , (_,n) <- ownedNotifications]
   let createNotifications = filter (`notElem` (map snd notifications)) newNotifications
 
+  showIfCreating createNotifications
   mapA_ dedupCreate createNotifications
 
   -- Remove owned notifications after passing along to employees
@@ -110,7 +125,9 @@ handleInternalContracts party acs employees = do
   let internalAgreements = map snd $ getContracts @AgreementInternal acs
   let newInternalAgreements = [AgreementInternal party employees a | a <- agreements]
   let createInternalAgreements = filter (`notElem` internalAgreements) newInternalAgreements
-  mapA_ dedupCreate newInternalAgreements -- createInternalAgreements
+
+  showIfCreating createInternalAgreements
+  mapA_ dedupCreate createInternalAgreements
 
 -- TODO: see if there is a better way to exercise contracts without duplications
 -- we resort to the n^2 version for now. Once we have Maps we can use those to implement a more efficient dedup.

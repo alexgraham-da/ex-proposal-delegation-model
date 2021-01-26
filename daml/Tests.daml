@@ -60,20 +60,22 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   cbSymphonyId <- companyB `findOrCreate` CompanySymphony with owner = companyB
 
   companyA `submit` exerciseCmd caInternalId CompanyInternal_AddEmployee with
-        employee = a1, fullName = "Employee A1", email = "employeeA1@companya.com", manager = True
+        employee = a1, fullName = "Employee A1", email = "employeeA1@companya.com", isManager = True
 
   companyB `submit` exerciseCmd cbInternalId CompanyInternal_AddEmployee with
-        employee = b1, fullName = "Employee B1", email = "employeeB1@companyB.com", manager = True
+        employee = b1, fullName = "Employee B1", email = "employeeB1@companyB.com", isManager = True
 
   (Some (managerIdA,_)) <- queryContractKey @EmployeeManager a1 (a1, companyA)
   (Some (managerIdB,_)) <- queryContractKey @EmployeeManager b1 (b1, companyB)
 
   -- add employees to company
-  a1 `submit` exerciseCmd managerIdA EmployeeManager_AddEmployee with
+  a1 `submit` exerciseCmd managerIdA EmployeeManager_OnboardEmployee with
       newEmployee = a2, fullName = "Employee A2", email = "employeeA2@companya.com"
+      isManager = False, isProposer = False, isReviewer = False
 
-  b1 `submit` exerciseCmd managerIdB EmployeeManager_AddEmployee with
+  b1 `submit` exerciseCmd managerIdB EmployeeManager_OnboardEmployee with
       newEmployee = b2, fullName = "Employee B2", email = "employeeB@companyB.com"
+      isManager = False, isProposer = False, isReviewer = False
 
  -- add employeeA1 as a reviewer
   a2Reviewer <- a1 `submit` exerciseByKeyCmd @EmployeeManager (a1, companyA) EmployeeManager_AddReviewer with
