@@ -6,7 +6,7 @@ authors = ["Digital Asset"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-dazl = "^7.0.2"
+dazl = "^7.5.9"
 aiohttp = "^3.6.2"
 multidict = "^4.7.6"
 sym-api-client-python = "^1.1.2"
