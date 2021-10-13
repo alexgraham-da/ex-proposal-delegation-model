@@ -60,10 +60,10 @@ initializeTests lp@(LedgerParties public companyA companyB a1 a2 b1 b2) = do
   cbSymphonyId <- companyB `findOrCreate` CompanySymphony with owner = companyB
 
   companyA `submit` exerciseCmd caInternalId CompanyInternal_AddEmployee with
-        employee = a1, fullName = "Employee A1", email = "employeeA1@companya.com", isManager = True
+        employee = a1, fullName = "Employee A1", email = "employeeA1@companya.com", isManager = True, isProposer = False, isReviewer = False
 
   companyB `submit` exerciseCmd cbInternalId CompanyInternal_AddEmployee with
-        employee = b1, fullName = "Employee B1", email = "employeeB1@companyB.com", isManager = True
+        employee = b1, fullName = "Employee B1", email = "employeeB1@companyB.com", isManager = True, isProposer = False, isReviewer = False
 
   (Some (managerIdA,_)) <- queryContractKey @EmployeeManager a1 (a1, companyA)
   (Some (managerIdB,_)) <- queryContractKey @EmployeeManager b1 (b1, companyB)

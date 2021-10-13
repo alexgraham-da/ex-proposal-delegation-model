@@ -22,6 +22,11 @@ template Company
         do
           create this with name = newName
 
+    controller owner can
+      nonconsuming Company_CreateInternalCompany : ContractId CompanyInternal
+        do
+          create CompanyInternal with company = owner, employees = mempty, management = []
+
     nonconsuming choice Company_Propose : ContractId Proposal
       with
         proposer : Party
@@ -48,6 +53,8 @@ template CompanyInternal
           fullName : Text
           email : Text
           isManager : Bool
+          isProposer : Bool
+          isReviewer : Bool
         do
           management' <- if   isManager
                          then do
@@ -55,6 +62,8 @@ template CompanyInternal
                               return (employee :: management)
                          else return management
           create Employee with party = employee, ..
+          when isProposer $ void $ create EmployeeProposer with company, ..
+          when isReviewer $ void $ create EmployeeReviewer with company, ..
           create this with employees = insert employee employees, management = management'
 
     nonconsuming choice CompanyInternal_UpdateCompanyName : ContractId Company

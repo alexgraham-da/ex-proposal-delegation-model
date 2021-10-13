@@ -1,4 +1,4 @@
-sdk-version: 1.6.0
+sdk-version: 1.4.0
 name: proposal-trigger
 source: src
 parties:
@@ -8,15 +8,15 @@ parties:
   - EmployeeA2
   - EmployeeB1
   - EmployeeB2
-version: 0.0.2
+version: 0.0.3
 # trigger-dependencies-begin
 dependencies:
   - daml-prim
   - daml-stdlib
   - daml-trigger
-  - ../.daml/dist/proposal-model-0.0.2.dar
+  - ../.daml/dist/proposal-model-0.0.3.dar
 data-dependencies:
-  - ../.daml/dist/proposal-model-0.0.2.dar
+  - ../.daml/dist/proposal-model-0.0.3.dar
 # trigger-dependencies-end
 sandbox-options:
   - --wall-clock-time

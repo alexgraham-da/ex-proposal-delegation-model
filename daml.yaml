@@ -12,7 +12,7 @@ parties:
   - EmployeeB2
   - CompanyATest
   - CompanyBTest
-version: 0.0.2
+version: 0.0.3
 # trigger-dependencies-begin
 dependencies:
   - daml-prim
