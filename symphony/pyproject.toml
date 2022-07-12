@@ -11,6 +11,7 @@ aiohttp = "^3.6.2"
 multidict = "^4.7.6"
 sym-api-client-python = "^1.1.2"
 grpcio = ">=1.29.1"
+MarkupSafe = "<2.1.0"
 
 [tool.poetry.dev-dependencies]
 
